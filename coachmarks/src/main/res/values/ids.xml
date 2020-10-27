@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="view_id" type="id" />
+    <item name="vertical_guide" type="id" />
+    <item name="horizontal_guide" type="id" />
+</resources>

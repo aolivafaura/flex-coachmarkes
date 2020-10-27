@@ -1,0 +1,3 @@
+include ':coachmarks'
+include ':app'
+rootProject.name = "FlexibleCoachMarks"
