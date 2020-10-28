@@ -6,64 +6,20 @@ import androidx.annotation.IdRes
 class Coachmark<T : View> {
 
     // ---------------------------------------------------------------------------------------------
-    // CONSTANTS
-    // ---------------------------------------------------------------------------------------------
-
-    companion object {
-
-        /**
-         * Indicates that related view will have its top aligned with the spot position chosen
-         */
-        const val ALIGNMENT_TOP = 1
-        /**
-         * Indicates that related view will have its bottom aligned with the spot position chosen
-         */
-        const val ALIGNMENT_BOTTOM = 2
-        /**
-         * Indicates that related view will have its left side aligned with the spot position chosen
-         */
-        const val ALIGNMENT_LEFT = 3
-        /**
-         * Indicates that related view will have its right side aligned with the spot position chosen
-         */
-        const val ALIGNMENT_RIGHT = 4
-        /**
-         * Indicates that related view will have its center aligned with the spot position chosen
-         */
-        const val ALIGNMENT_CENTER = 5
-        /**
-         * Indicates that related view will be aligned on the top of spot
-         */
-        const val POSITION_TOP = 6
-        /**
-         * Indicates that related view will be aligned on the bottom of spot
-         */
-        const val POSITION_BOTTOM = 7
-        /**
-         * Indicates that related view will be aligned on the left side of spot
-         */
-        const val POSITION_LEFT = 8
-        /**
-         * Indicates that related view will be aligned on the right side of spot
-         */
-        const val POSITION_RIGHT = 9
-    }
-
-    // ---------------------------------------------------------------------------------------------
     // VARIABLES
     // ---------------------------------------------------------------------------------------------
 
-    var spotDiameterDp = -1
-    var spotDiameterPercentage: Double = -1.0
+    var sizePercentage: Double = -1.0
+
     @IdRes
     var targetId: Int = 0
     var target: View? = null
-    var position: Int = 0
-    var alignment: Int = 0
+    lateinit var position: Position
+    lateinit var alignment: Alignment
     var relatedSpotView: T? = null
     internal var maxWidth = -1
     val paddings = intArrayOf(0, 0, 0, 0)
-    var type: Type = Type.CIRCLE
+    var shape: Shape = Shape.CIRCLE
 
     /**
      * @param targetId        Desired view id to be spotted
@@ -71,13 +27,18 @@ class Coachmark<T : View> {
      * @param position        Position of the view respect to the mark
      * @param alignment       Alignment of the view respect to the position
      */
-    constructor(@IdRes targetId: Int, relatedSpotView: T, position: Int, alignment: Int, type: Type = Type.CIRCLE) {
-
+    constructor(
+        @IdRes targetId: Int,
+        relatedSpotView: T,
+        position: Position,
+        alignment: Alignment,
+        type: Shape = Shape.CIRCLE
+    ) {
         this.targetId = targetId
         this.position = position
         this.alignment = alignment
         this.relatedSpotView = relatedSpotView
-        this.type = type
+        this.shape = type
     }
 
     /**
@@ -86,13 +47,19 @@ class Coachmark<T : View> {
      * @param position        Position of the view respect to the mark
      * @param alignment       Alignment of the view respect to the position
      */
-    constructor(target: View, relatedSpotView: T, position: Int, alignment: Int, type: Type = Type.CIRCLE) {
+    constructor(
+        target: View,
+        relatedSpotView: T,
+        position: Position,
+        alignment: Alignment,
+        type: Shape = Shape.CIRCLE
+    ) {
 
         this.target = target
         this.position = position
         this.alignment = alignment
         this.relatedSpotView = relatedSpotView
-        this.type = type
+        this.shape = type
     }
 
     /**
@@ -111,7 +78,98 @@ class Coachmark<T : View> {
         this.paddings[3] = bottom
     }
 
-    enum class Type {
+    class Builder<TYPE : View>(private val relatedSpotView: TYPE) {
+        private var aligment = Alignment.TOP
+        private var position = Position.TOP
+        private var shape = Shape.CIRCLE
+        private var sizePercentage: Double = 100.0
+
+        private var targetView: View? = null
+        private var targetViewId: Int? = null
+
+        fun withView(targetView: View) = apply {
+            this.targetView = targetView
+        }
+
+        fun withViewId(@IdRes targetViewId: Int) = apply {
+            this.targetViewId = targetViewId
+        }
+
+        fun sizePercentage(sizePercentage: Double) = apply { this.sizePercentage = sizePercentage }
+        fun alignment(alignment: Alignment) = apply { this.aligment = alignment }
+        fun position(position: Position) = apply { this.position = position }
+        fun shape(shape: Shape) = apply { this.shape = shape }
+        fun build(): Coachmark<TYPE> = when {
+            (targetView != null && targetViewId != null) -> {
+                throw RuntimeException("Enter only ")
+            }
+            (targetView != null) -> {
+                Coachmark(targetView!!, relatedSpotView, position, aligment, shape).apply {
+                    sizePercentage = this@Builder.sizePercentage
+                }
+            }
+            (targetViewId != null) -> {
+                Coachmark(targetViewId!!, relatedSpotView, position, aligment, shape).apply {
+                    sizePercentage = this@Builder.sizePercentage
+                }
+            }
+            else -> {
+                throw RuntimeException("")
+            }
+        }
+    }
+
+    enum class Shape {
         CIRCLE, RECTANGLE
+    }
+
+    enum class Position {
+        /**
+         * Indicates that related view will be aligned on the top of spot
+         */
+        TOP,
+
+        /**
+         * Indicates that related view will be aligned on the bottom of spot
+         */
+        BOTTOM,
+
+        /**
+         * Indicates that related view will be aligned on the left side of spot
+         */
+        LEFT,
+
+        /**
+         * Indicates that related view will be aligned on the right side of spot
+         */
+        RIGHT
+    }
+
+    enum class Alignment {
+        /**
+         * Indicates that related view will have its top aligned with the spot position chosen
+         */
+        TOP,
+
+        /**
+         * Indicates that related view will have its bottom aligned with the spot position chosen
+         */
+        BOTTOM,
+
+        /**
+         * Indicates that related view will have its left side aligned with the spot position chosen
+         */
+        LEFT,
+
+        /**
+         * Indicates that related view will have its right side aligned with the spot position chosen
+         */
+        RIGHT,
+
+        /**
+         * Indicates that related view will have its center aligned with the spot position chosen
+         */
+        CENTER,
+
     }
 }

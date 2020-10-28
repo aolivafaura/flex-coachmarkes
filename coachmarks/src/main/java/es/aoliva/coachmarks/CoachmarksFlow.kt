@@ -19,7 +19,7 @@ import es.aoliva.coachmarks.spot.Spot
 import es.aoliva.coachmarks.spot.Spot.Companion.EXPAND
 import es.aoliva.coachmarks.spot.SpotView
 
-class FlexibleCoachmark : RelativeLayout {
+class CoachmarksFlow : RelativeLayout {
 
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
@@ -50,6 +50,11 @@ class FlexibleCoachmark : RelativeLayout {
         defStyleAttr
     )
 
+    private constructor(context: Context, builder: Builder) : super(context) {
+        steps = builder.steps
+        initialDelay = builder.initialDelay
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
@@ -79,7 +84,7 @@ class FlexibleCoachmark : RelativeLayout {
     /**
      * Advance to next step
      */
-    fun nextStep() {
+    fun goNextStep() {
         if (!hasNextStep()) {
             close()
         } else {
@@ -112,7 +117,7 @@ class FlexibleCoachmark : RelativeLayout {
 
             layoutParams = params
             visibility = View.INVISIBLE
-            vg.addView(this@FlexibleCoachmark)
+            vg.addView(this@CoachmarksFlow)
             fadeIn(1)
         }, initialDelay)
     }
@@ -149,11 +154,10 @@ class FlexibleCoachmark : RelativeLayout {
 
         val spotWidth =
             when {
-                item.spotDiameterDp > 0 -> item.spotDiameterDp
-                item.spotDiameterPercentage > 0 -> {
+                item.sizePercentage > 0 -> {
                     pixelsToDp(
                         context,
-                        (focusView.width * (item.spotDiameterPercentage / 100)).toInt()
+                        (focusView.width * (item.sizePercentage / 100)).toInt()
                     ).toInt()
                 }
                 else -> pixelsToDp(context, focusView.width).toInt()
@@ -162,17 +166,16 @@ class FlexibleCoachmark : RelativeLayout {
         val center = calculateCenter(focusView)
         val radius = dpToPixels(context, spotWidth / 2)
 
-        val spot = when (item.type) {
-            Coachmark.Type.CIRCLE -> {
+        val spot = when (item.shape) {
+            Coachmark.Shape.CIRCLE -> {
                 drawSpot(center, radius)
             }
-            Coachmark.Type.RECTANGLE -> {
+            Coachmark.Shape.RECTANGLE -> {
                 val height = when {
-                    item.spotDiameterDp > 0 -> item.spotDiameterDp
-                    item.spotDiameterPercentage > 0 -> {
+                    item.sizePercentage > 0 -> {
                         pixelsToDp(
                             context,
-                            (focusView.height * (item.spotDiameterPercentage / 100)).toInt()
+                            (focusView.height * (item.sizePercentage / 100)).toInt()
                         ).toInt()
                     }
                     else -> pixelsToDp(context, focusView.height).toInt()
@@ -203,10 +206,10 @@ class FlexibleCoachmark : RelativeLayout {
         val anchorPoint = intArrayOf(center[0], center[1])
 
         when (item.position) {
-            Coachmark.POSITION_BOTTOM -> anchorPoint[1] = anchorPoint[1] + spot.height.toInt()
-            Coachmark.POSITION_TOP -> anchorPoint[1] = anchorPoint[1] - spot.height.toInt()
-            Coachmark.POSITION_LEFT -> anchorPoint[0] = anchorPoint[0] - spot.width.toInt()
-            Coachmark.POSITION_RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
+            Coachmark.Position.BOTTOM -> anchorPoint[1] = anchorPoint[1] + spot.height.toInt()
+            Coachmark.Position.TOP -> anchorPoint[1] = anchorPoint[1] - spot.height.toInt()
+            Coachmark.Position.LEFT -> anchorPoint[0] = anchorPoint[0] - spot.width.toInt()
+            Coachmark.Position.RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
         }
 
         val padding = item.paddings
@@ -353,28 +356,28 @@ class FlexibleCoachmark : RelativeLayout {
         constraintSet.applyTo(contentLayout)
 
         when (item.position) {
-            Coachmark.POSITION_TOP -> {
+            Coachmark.Position.TOP -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
                     ConstraintSet.TOP, 0
                 )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
-            Coachmark.POSITION_BOTTOM -> {
+            Coachmark.Position.BOTTOM -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.TOP, horizontalGuideId,
                     ConstraintSet.BOTTOM
                 )
                 constraintSet.setVerticalBias(relatedViewId, 0f)
             }
-            Coachmark.POSITION_LEFT -> {
+            Coachmark.Position.LEFT -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
                     ConstraintSet.LEFT
                 )
                 constraintSet.setHorizontalBias(relatedViewId, 100f)
             }
-            Coachmark.POSITION_RIGHT -> {
+            Coachmark.Position.RIGHT -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.LEFT, verticalGuideId,
                     ConstraintSet.RIGHT
@@ -384,8 +387,8 @@ class FlexibleCoachmark : RelativeLayout {
         }
 
         when (item.alignment) {
-            Coachmark.ALIGNMENT_CENTER ->
-                if (item.position == Coachmark.POSITION_TOP || item.position == Coachmark.POSITION_BOTTOM) {
+            Coachmark.Alignment.CENTER ->
+                if (item.position == Coachmark.Position.TOP || item.position == Coachmark.Position.BOTTOM) {
                     constraintSet.connect(
                         relatedViewId, ConstraintSet.LEFT, verticalGuideId,
                         ConstraintSet.LEFT
@@ -404,28 +407,28 @@ class FlexibleCoachmark : RelativeLayout {
                         horizontalGuideId, ConstraintSet.BOTTOM
                     )
                 }
-            Coachmark.ALIGNMENT_TOP -> {
+            Coachmark.Alignment.TOP -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
                     ConstraintSet.TOP
                 )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
-            Coachmark.ALIGNMENT_BOTTOM -> {
+            Coachmark.Alignment.BOTTOM -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.TOP, horizontalGuideId,
                     ConstraintSet.BOTTOM
                 )
                 constraintSet.setVerticalBias(relatedViewId, 0f)
             }
-            Coachmark.ALIGNMENT_LEFT -> {
+            Coachmark.Alignment.LEFT -> {
                 constraintSet.connect(
                     relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
                     ConstraintSet.LEFT
                 )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
-            Coachmark.ALIGNMENT_RIGHT -> constraintSet.connect(
+            Coachmark.Alignment.RIGHT -> constraintSet.connect(
                 relatedViewId, ConstraintSet.LEFT, verticalGuideId,
                 ConstraintSet.RIGHT
             )
@@ -447,27 +450,27 @@ class FlexibleCoachmark : RelativeLayout {
         var width = screenWidth
 
         when (item.position) {
-            Coachmark.POSITION_TOP, Coachmark.POSITION_BOTTOM -> if (item.alignment == Coachmark.ALIGNMENT_CENTER) {
+            Coachmark.Position.TOP, Coachmark.Position.BOTTOM -> if (item.alignment == Coachmark.Alignment.CENTER) {
                 width -= margin * 2
             } else {
                 width -= margin
                 width -= dpToPixels(context, spotWidth / 2)
 
-                if (item.alignment == Coachmark.ALIGNMENT_LEFT) {
+                if (item.alignment == Coachmark.Alignment.LEFT) {
                     if (item.paddings[2] != 0) {
                         width -= dpToPixels(context, item.paddings[2])
                     }
                     width -= (screenWidth - center[0])
-                } else if (item.alignment == Coachmark.ALIGNMENT_RIGHT) {
+                } else if (item.alignment == Coachmark.Alignment.RIGHT) {
                     if (item.paddings[1] != 0) {
                         width -= dpToPixels(context, item.paddings[1])
                     }
                     width -= center[0]
                 }
             }
-            Coachmark.POSITION_LEFT, Coachmark.POSITION_RIGHT -> {
+            Coachmark.Position.LEFT, Coachmark.Position.RIGHT -> {
                 width -= margin
-                if (item.position == Coachmark.POSITION_LEFT) {
+                if (item.position == Coachmark.Position.LEFT) {
                     if (item.paddings[2] != 0) {
                         width -= dpToPixels(context, item.paddings[2])
                     }
@@ -475,7 +478,7 @@ class FlexibleCoachmark : RelativeLayout {
                         context,
                         spotWidth / 2
                     ).toFloat()).toInt()
-                } else if (item.position == Coachmark.POSITION_RIGHT) {
+                } else if (item.position == Coachmark.Position.RIGHT) {
                     if (item.paddings[1] != 0) {
                         width -= dpToPixels(context, item.paddings[1])
                     }
@@ -511,5 +514,23 @@ class FlexibleCoachmark : RelativeLayout {
             }
         }
         return null
+    }
+
+    class Builder(private val context: Context) {
+        var steps = mutableListOf<Coachmark<View>>()
+        var initialDelay = 0L
+
+        fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
+            apply { steps.addAll(listSteps as List<Coachmark<View>>) }
+
+        fun <TYPE : View> nextStep(step: Coachmark<TYPE>) =
+            apply { steps.add(step as Coachmark<View>) }
+
+        fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
+        fun build() = CoachmarksFlow(context, this)
+    }
+
+    companion object {
+        fun with(context: Context): Builder = Builder(context)
     }
 }
