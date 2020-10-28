@@ -3,13 +3,11 @@ package es.aoliva.flexiblecoachmarks
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import es.aoliva.coachmarks.Coachmark
-import es.aoliva.coachmarks.FlexibleCoachmark
-import es.aoliva.coachmarks.GenerateView
+import es.aoliva.coachmarks.CoachmarksFlow
 
 
 class MainActivity : AppCompatActivity() {
@@ -17,59 +15,103 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(@Nullable savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        createFirstFlow()
+//        createSecondflow()
+    }
+
+    private fun createFirstFlow() {
         findViewById<View>(R.id.button).setOnClickListener {
-            val coachmark = FlexibleCoachmark(this@MainActivity)
-            val relatedButton = Button(this@MainActivity)
-            relatedButton.setOnClickListener {
-                coachmark.nextStep()
-            }
-            relatedButton.setText("Next coachmark")
-            val c1: Coachmark<Button> = Coachmark<Button>(R.id.button, relatedButton, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_RIGHT)
-            c1.spotDiameterPercentage = 100.0
-            val c2: Coachmark<Button> = Coachmark<Button>(R.id.button2, relatedButton, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_LEFT)
-            c2.spotDiameterPercentage = 100.0
-            val c3: Coachmark<Button> = Coachmark<Button>(R.id.button5, relatedButton, Coachmark.POSITION_RIGHT, Coachmark.ALIGNMENT_TOP)
-            c3.spotDiameterPercentage = 100.0
-            c3.setPaddings(0,20,5,10)
-            val buttonList: MutableList<Coachmark<Button>> = ArrayList()
-            buttonList.add(c1)
-            buttonList.add(c2)
-            buttonList.add(c3)
-            coachmark.setSteps(buttonList)
-            coachmark.dismissListener = object : FlexibleCoachmark.OnCoackmarkDismissedListener {
-                override fun onCoachmarkDismissed() {
-                    Log.d("FlexibleCoachmarkDemo", "Coachmark dismissed")
-                }
-            }
-            coachmark.initialDelay = 1000
-            coachmark.show()
-        }
-        findViewById<View>(R.id.button2).setOnClickListener {
-            val coachmark = FlexibleCoachmark(this@MainActivity)
-            val viewg: ViewGroup = GenerateView(this@MainActivity, R.layout.view_simple_layout)
-                    .withButton(R.id.button9, R.string.title_activity_main) {
-                        coachmark.nextStep()
+            val relatedButton = Button(this)
+            val coachMark1: Coachmark<Button> = Coachmark.Builder(relatedButton)
+                .withViewId(R.id.button)
+                .sizePercentage(100.0)
+                .alignment(Coachmark.Alignment.RIGHT)
+                .position(Coachmark.Position.BOTTOM)
+                .shape(Coachmark.Shape.CIRCLE)
+                .build()
+
+            val coachMark2: Coachmark<Button> = Coachmark.Builder(relatedButton)
+                .withViewId(R.id.button2)
+                .sizePercentage(100.0)
+                .alignment(Coachmark.Alignment.LEFT)
+                .position(Coachmark.Position.BOTTOM)
+                .shape(Coachmark.Shape.CIRCLE)
+                .build()
+
+            val coachMark3: Coachmark<Button> = Coachmark.Builder(relatedButton)
+                .withViewId(R.id.button5)
+                .sizePercentage(100.0)
+                .alignment(Coachmark.Alignment.TOP)
+                .position(Coachmark.Position.RIGHT)
+                .shape(Coachmark.Shape.CIRCLE)
+                .build()
+
+//            c3.setPaddings(0, 20, 5, 10)
+
+            val coachmarksFlow = CoachmarksFlow.with(this)
+                .steps(listOf(coachMark1, coachMark2, coachMark3))
+                .initialDelay(1000)
+                .build().apply {
+                    dismissListener = object : CoachmarksFlow.OnCoackmarkDismissedListener {
+                        override fun onCoachmarkDismissed() {
+                            Log.d("FlexibleCoachmarkDemo", "Coachmark dismissed")
+                        }
                     }
-                    .withText(R.id.textView, R.string.title_activity_main)
-                    .generate()
-            val c1: Coachmark<ViewGroup> = Coachmark<ViewGroup>(R.id.button, viewg, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_RIGHT)
-            c1.spotDiameterDp = 100
-            val c2: Coachmark<ViewGroup> = Coachmark<ViewGroup>(R.id.button, viewg, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_RIGHT)
-            c2.spotDiameterPercentage = 200.0
-            val c3: Coachmark<ViewGroup> = Coachmark<ViewGroup>(R.id.button5, viewg, Coachmark.POSITION_RIGHT, Coachmark.ALIGNMENT_TOP)
-            c3.spotDiameterPercentage = 50.0
-            val buttonList: MutableList<Coachmark<ViewGroup>> = ArrayList()
-            buttonList.add(c1)
-            buttonList.add(c2)
-            buttonList.add(c3)
-            coachmark.setSteps<ViewGroup>(buttonList)
-            coachmark.dismissListener = object : FlexibleCoachmark.OnCoackmarkDismissedListener {
-                override fun onCoachmarkDismissed() {
-                    Log.d("FlexibleCoachmarkDemo", "Coachmark dismissed")
+                    show()
                 }
+
+            relatedButton.setOnClickListener {
+                coachmarksFlow.goNextStep()
             }
-            coachmark.initialDelay = 1000
-            coachmark.show()
+            relatedButton.text = "Next coachmark"
         }
     }
+//
+//    private fun createSecondflow() {
+//        findViewById<View>(R.id.button2).setOnClickListener {
+//            val coachmark = CoachmarksFlow(this@MainActivity)
+//            val viewg: ViewGroup = GenerateView(this@MainActivity, R.layout.view_simple_layout)
+//                .withButton(R.id.button9, R.string.title_activity_main,
+//                    View.OnClickListener { coachmark.goNextStep() })
+//                .withText(R.id.textView, R.string.title_activity_main)
+//                .generate()
+//            val c1: Coachmark<ViewGroup> = Coachmark(
+//                R.id.button,
+//                viewg,
+//                Coachmark.POSITION_BOTTOM,
+//                Coachmark.ALIGNMENT_RIGHT
+//            )
+//            c1.spotDiameterDp = 100
+//            val c2: Coachmark<ViewGroup> = Coachmark(
+//                R.id.button,
+//                viewg,
+//                Coachmark.POSITION_BOTTOM,
+//                Coachmark.ALIGNMENT_RIGHT
+//            )
+//            c2.sizePercentage = 200.0
+//            val c3: Coachmark<ViewGroup> = Coachmark(
+//                R.id.button5,
+//                viewg,
+//                Coachmark.POSITION_RIGHT,
+//                Coachmark.ALIGNMENT_TOP
+//            )
+//            c3.sizePercentage = 50.0
+//            val buttonList: MutableList<Coachmark<ViewGroup>> = ArrayList()
+//            buttonList.add(c1)
+//            buttonList.add(c2)
+//            buttonList.add(c3)
+//            coachmark.setSteps(buttonList)
+//            coachmark.dismissListener = object : CoachmarksFlow.OnCoackmarkDismissedListener {
+//                override fun onCoachmarkDismissed() {
+//                    Log.d("FlexibleCoachmarkDemo", "Coachmark dismissed")
+//                }
+//            }
+//            coachmark.initialDelay = 1000
+//            coachmark.show()
+//        }
+//
+//        findViewById<View>(R.id.button5).setOnClickListener {
+//            Log.d("FlexibleCoachmarkDemo", "Button 5 click")
+//        }
+//    }
 }
