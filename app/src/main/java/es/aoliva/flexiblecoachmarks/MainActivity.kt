@@ -24,8 +24,8 @@ class MainActivity : AppCompatActivity() {
                 coachmark.nextStep()
             }
             relatedButton.setText("Next coachmark")
-            val c1: Coachmark<Button> = Coachmark<Button>(R.id.button, relatedButton, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_RIGHT)
-            c1.spotDiameterPercentage = 100.0
+            val c1: Coachmark<Button> = Coachmark<Button>(R.id.button, relatedButton, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_RIGHT, Coachmark.Type.RECTANGLE)
+            c1.spotDiameterPercentage = 150.0
             val c2: Coachmark<Button> = Coachmark<Button>(R.id.button2, relatedButton, Coachmark.POSITION_BOTTOM, Coachmark.ALIGNMENT_LEFT)
             c2.spotDiameterPercentage = 100.0
             val c3: Coachmark<Button> = Coachmark<Button>(R.id.button5, relatedButton, Coachmark.POSITION_RIGHT, Coachmark.ALIGNMENT_TOP)
@@ -70,6 +70,10 @@ class MainActivity : AppCompatActivity() {
             }
             coachmark.initialDelay = 1000
             coachmark.show()
+        }
+
+        findViewById<View>(R.id.button5).setOnClickListener {
+            Log.d("FlexibleCoachmarkDemo", "Button 5 click")
         }
     }
 }

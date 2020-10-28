@@ -63,6 +63,7 @@ class Coachmark<T : View> {
     var relatedSpotView: T? = null
     internal var maxWidth = -1
     val paddings = intArrayOf(0, 0, 0, 0)
+    var type: Type = Type.CIRCLE
 
     /**
      * @param targetId        Desired view id to be spotted
@@ -70,13 +71,13 @@ class Coachmark<T : View> {
      * @param position        Position of the view respect to the mark
      * @param alignment       Alignment of the view respect to the position
      */
-    constructor(@IdRes targetId: Int, relatedSpotView: T, position: Int,
-                alignment: Int) {
+    constructor(@IdRes targetId: Int, relatedSpotView: T, position: Int, alignment: Int, type: Type = Type.CIRCLE) {
 
         this.targetId = targetId
         this.position = position
         this.alignment = alignment
         this.relatedSpotView = relatedSpotView
+        this.type = type
     }
 
     /**
@@ -85,13 +86,13 @@ class Coachmark<T : View> {
      * @param position        Position of the view respect to the mark
      * @param alignment       Alignment of the view respect to the position
      */
-    constructor(target: View, relatedSpotView: T, position: Int,
-                alignment: Int) {
+    constructor(target: View, relatedSpotView: T, position: Int, alignment: Int, type: Type = Type.CIRCLE) {
 
         this.target = target
         this.position = position
         this.alignment = alignment
         this.relatedSpotView = relatedSpotView
+        this.type = type
     }
 
     /**
@@ -108,5 +109,9 @@ class Coachmark<T : View> {
         this.paddings[1] = left
         this.paddings[2] = right
         this.paddings[3] = bottom
+    }
+
+    enum class Type {
+        CIRCLE, RECTANGLE
     }
 }

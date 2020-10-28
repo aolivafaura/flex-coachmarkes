@@ -1,20 +1,23 @@
 package es.aoliva.coachmarks
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.RectF
-import android.os.Build
+import android.os.Handler
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.RelativeLayout
-import android.content.ContextWrapper
-import android.app.Activity
-import android.os.Handler
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import es.aoliva.coachmarks.Spot.Companion.EXPAND
+import es.aoliva.coachmarks.spot.CircleSpot
+import es.aoliva.coachmarks.spot.RectangleSpot
+import es.aoliva.coachmarks.spot.Spot
+import es.aoliva.coachmarks.spot.Spot.Companion.EXPAND
+import es.aoliva.coachmarks.spot.SpotView
 
 class FlexibleCoachmark : RelativeLayout {
 
@@ -41,7 +44,11 @@ class FlexibleCoachmark : RelativeLayout {
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
 
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(
+        context,
+        attrs,
+        defStyleAttr
+    )
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -57,7 +64,7 @@ class FlexibleCoachmark : RelativeLayout {
      *
      * @param steps
      */
-    fun <T: View> setSteps(steps: List<Coachmark<T>>) {
+    fun <T : View> setSteps(steps: List<Coachmark<T>>) {
         this.steps = steps as List<Coachmark<View>>
     }
 
@@ -100,7 +107,8 @@ class FlexibleCoachmark : RelativeLayout {
         Handler().postDelayed({
             val vg = getActivity()?.window?.decorView?.rootView as ViewGroup
             val params = RelativeLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
 
             layoutParams = params
             visibility = View.INVISIBLE
@@ -126,37 +134,58 @@ class FlexibleCoachmark : RelativeLayout {
         removeView(findViewById(relatedViewId))
 
         val focusView: View? =
-                if (item.target != null) item.target
-                else findOnViewForId(null, item.targetId)
+            if (item.target != null) item.target
+            else findOnViewForId(null, item.targetId)
 
 
         if (focusView == null) {
-            Log.w("CUSTOM COACH MARK",
-                    "There is no view detected with given Id: " + item.targetId)
+            Log.w(
+                "CUSTOM COACH MARK",
+                "There is no view detected with given Id: " + item.targetId
+            )
             close()
             return
         }
 
-        val spotDiameter =
-                when {
-                    item.spotDiameterDp > 0 -> item.spotDiameterDp
-                    item.spotDiameterPercentage > 0 -> {
-                        pixelsToDp(context, (focusView.width * (item.spotDiameterPercentage / 100)).toInt()).toInt()
-                    }
-                    else -> 0
+        val spotWidth =
+            when {
+                item.spotDiameterDp > 0 -> item.spotDiameterDp
+                item.spotDiameterPercentage > 0 -> {
+                    pixelsToDp(
+                        context,
+                        (focusView.width * (item.spotDiameterPercentage / 100)).toInt()
+                    ).toInt()
                 }
+                else -> pixelsToDp(context, focusView.width).toInt()
+            }
 
         val center = calculateCenter(focusView)
-        val radius = dpToPixels(context, spotDiameter / 2)
-        val anchorPoint = calculateAnchorPoint(center, item, radius)
+        val radius = dpToPixels(context, spotWidth / 2)
 
-        calculateRelatedViewMaxWidth(center, item, spotDiameter)
-        drawSpot(center, radius)
+        val spot = when (item.type) {
+            Coachmark.Type.CIRCLE -> {
+                drawSpot(center, radius)
+            }
+            Coachmark.Type.RECTANGLE -> {
+                val height = when {
+                    item.spotDiameterDp > 0 -> item.spotDiameterDp
+                    item.spotDiameterPercentage > 0 -> {
+                        pixelsToDp(
+                            context,
+                            (focusView.height * (item.spotDiameterPercentage / 100)).toInt()
+                        ).toInt()
+                    }
+                    else -> pixelsToDp(context, focusView.height).toInt()
+                }
+                drawSpot(center, height, radius)
+            }
+        }
+        val anchorPoint = calculateAnchorPoint(center, item, spot)
+        calculateRelatedViewMaxWidth(center, item, spotWidth)
         drawRelatedView(item, anchorPoint)
     }
 
     private fun calculateCenter(focusView: View?): IntArray {
-
         val coordinates = IntArray(2)
         focusView!!.getLocationInWindow(coordinates)
 
@@ -166,14 +195,18 @@ class FlexibleCoachmark : RelativeLayout {
         return coordinates
     }
 
-    private fun calculateAnchorPoint(center: IntArray, item: Coachmark<View>, radius: Int): IntArray {
+    private fun calculateAnchorPoint(
+        center: IntArray,
+        item: Coachmark<View>,
+        spot: Spot
+    ): IntArray {
         val anchorPoint = intArrayOf(center[0], center[1])
 
         when (item.position) {
-            Coachmark.POSITION_BOTTOM -> anchorPoint[1] = anchorPoint[1] + radius
-            Coachmark.POSITION_TOP -> anchorPoint[1] = anchorPoint[1] - radius
-            Coachmark.POSITION_LEFT -> anchorPoint[0] = anchorPoint[0] - radius
-            Coachmark.POSITION_RIGHT -> anchorPoint[0] = anchorPoint[0] + radius
+            Coachmark.POSITION_BOTTOM -> anchorPoint[1] = anchorPoint[1] + spot.height.toInt()
+            Coachmark.POSITION_TOP -> anchorPoint[1] = anchorPoint[1] - spot.height.toInt()
+            Coachmark.POSITION_LEFT -> anchorPoint[0] = anchorPoint[0] - spot.width.toInt()
+            Coachmark.POSITION_RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
         }
 
         val padding = item.paddings
@@ -197,13 +230,47 @@ class FlexibleCoachmark : RelativeLayout {
         return anchorPoint
     }
 
-    private fun drawSpot(coordinates: IntArray, radius: Int) {
+    private fun drawSpot(coordinates: IntArray, height: Int, width: Int): Spot {
 
         if (spotView == null) {
             spotView = SpotView(context)
             val params = ConstraintLayout.LayoutParams(
-                    ConstraintLayout.LayoutParams.MATCH_PARENT,
-                    ConstraintLayout.LayoutParams.MATCH_PARENT)
+                ConstraintLayout.LayoutParams.MATCH_PARENT,
+                ConstraintLayout.LayoutParams.MATCH_PARENT
+            )
+            addView(spotView, params)
+        }
+
+        val topCoordinate = coordinates[1] - height
+        val bottomCoordinate = coordinates[1] + height
+        val leftCoordinate = coordinates[0] - width
+        val rightCoordinate = coordinates[0] + width
+
+        val rect = RectF(
+            leftCoordinate.toFloat(),
+            topCoordinate.toFloat(),
+            rightCoordinate.toFloat(),
+            bottomCoordinate.toFloat()
+        )
+
+        val spot = RectangleSpot(rect, height.toFloat(), width.toFloat(), 0f, true)
+        spot.direction = EXPAND
+
+        spotView!!.removeLastSpot()
+        spotView!!.addSpot(spot)
+        spotView!!.startSequence()
+
+        return spot
+    }
+
+    private fun drawSpot(coordinates: IntArray, radius: Int): Spot {
+
+        if (spotView == null) {
+            spotView = SpotView(context)
+            val params = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.MATCH_PARENT,
+                ConstraintLayout.LayoutParams.MATCH_PARENT
+            )
             addView(spotView, params)
         }
 
@@ -212,22 +279,30 @@ class FlexibleCoachmark : RelativeLayout {
         val leftCoordinate = coordinates[0] - radius
         val rightCoordinate = coordinates[0] + radius
 
-        val rect = RectF(leftCoordinate.toFloat(), topCoordinate.toFloat(), rightCoordinate.toFloat(),
-                bottomCoordinate.toFloat())
+        val rect = RectF(
+            leftCoordinate.toFloat(), topCoordinate.toFloat(), rightCoordinate.toFloat(),
+            bottomCoordinate.toFloat()
+        )
 
-        val spot = Spot(rect, radius.toFloat(), true)
+        val spot = CircleSpot(rect, radius.toFloat(), true)
         spot.direction = EXPAND
 
         spotView!!.removeLastSpot()
         spotView!!.addSpot(spot)
         spotView!!.startSequence()
+
+        return spot
     }
 
     private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray) {
 
         val contentLayout = ConstraintLayout(context)
-        addView(contentLayout, RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT))
+        addView(
+            contentLayout, RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
 
         val relatedView = item.relatedSpotView
         relatedView?.id = relatedViewId
@@ -239,30 +314,31 @@ class FlexibleCoachmark : RelativeLayout {
             (relatedView.parent as ViewGroup).removeView(relatedView)
         }
 
-        contentLayout.addView(relatedView, ConstraintLayout.LayoutParams(
+        contentLayout.addView(
+            relatedView, ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.WRAP_CONTENT,
-                ConstraintLayout.LayoutParams.WRAP_CONTENT))
+                ConstraintLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
 
-        relatedView?.viewTreeObserver?.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+        relatedView?.viewTreeObserver?.addOnGlobalLayoutListener(object :
+            ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 if (maxWidth > 0 && relatedView.width > maxWidth) {
                     requestLayout()
                     relatedView.layoutParams.width = maxWidth
                 }
 
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
-                    relatedView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                } else {
-                    relatedView.viewTreeObserver.removeGlobalOnLayoutListener(this)
-                }
-
+                relatedView.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 setConstraints(item, contentLayout, anchorPoint)
             }
         })
     }
 
-    private fun setConstraints(item: Coachmark<View>, contentLayout: ConstraintLayout,
-                               anchorPoint: IntArray) {
+    private fun setConstraints(
+        item: Coachmark<View>, contentLayout: ConstraintLayout,
+        anchorPoint: IntArray
+    ) {
 
         val verticalGuideId = R.id.vertical_guide
         val horizontalGuideId = R.id.horizontal_guide
@@ -278,23 +354,31 @@ class FlexibleCoachmark : RelativeLayout {
 
         when (item.position) {
             Coachmark.POSITION_TOP -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
-                        ConstraintSet.TOP, 0)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
+                    ConstraintSet.TOP, 0
+                )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
             Coachmark.POSITION_BOTTOM -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                        ConstraintSet.BOTTOM)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.TOP, horizontalGuideId,
+                    ConstraintSet.BOTTOM
+                )
                 constraintSet.setVerticalBias(relatedViewId, 0f)
             }
             Coachmark.POSITION_LEFT -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                        ConstraintSet.LEFT)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
+                    ConstraintSet.LEFT
+                )
                 constraintSet.setHorizontalBias(relatedViewId, 100f)
             }
             Coachmark.POSITION_RIGHT -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                        ConstraintSet.RIGHT)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.LEFT, verticalGuideId,
+                    ConstraintSet.RIGHT
+                )
                 constraintSet.setHorizontalBias(relatedViewId, 0f)
             }
         }
@@ -302,40 +386,60 @@ class FlexibleCoachmark : RelativeLayout {
         when (item.alignment) {
             Coachmark.ALIGNMENT_CENTER ->
                 if (item.position == Coachmark.POSITION_TOP || item.position == Coachmark.POSITION_BOTTOM) {
-                    constraintSet.connect(relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                            ConstraintSet.LEFT)
-                    constraintSet.connect(relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                            ConstraintSet.RIGHT)
+                    constraintSet.connect(
+                        relatedViewId, ConstraintSet.LEFT, verticalGuideId,
+                        ConstraintSet.LEFT
+                    )
+                    constraintSet.connect(
+                        relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
+                        ConstraintSet.RIGHT
+                    )
                 } else {
-                    constraintSet.connect(relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                            ConstraintSet.TOP)
-                    constraintSet.connect(relatedViewId, ConstraintSet.BOTTOM,
-                            horizontalGuideId, ConstraintSet.BOTTOM)
+                    constraintSet.connect(
+                        relatedViewId, ConstraintSet.TOP, horizontalGuideId,
+                        ConstraintSet.TOP
+                    )
+                    constraintSet.connect(
+                        relatedViewId, ConstraintSet.BOTTOM,
+                        horizontalGuideId, ConstraintSet.BOTTOM
+                    )
                 }
             Coachmark.ALIGNMENT_TOP -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
-                        ConstraintSet.TOP)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
+                    ConstraintSet.TOP
+                )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
             Coachmark.ALIGNMENT_BOTTOM -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                        ConstraintSet.BOTTOM)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.TOP, horizontalGuideId,
+                    ConstraintSet.BOTTOM
+                )
                 constraintSet.setVerticalBias(relatedViewId, 0f)
             }
             Coachmark.ALIGNMENT_LEFT -> {
-                constraintSet.connect(relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                        ConstraintSet.LEFT)
+                constraintSet.connect(
+                    relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
+                    ConstraintSet.LEFT
+                )
                 constraintSet.setVerticalBias(relatedViewId, 100f)
             }
-            Coachmark.ALIGNMENT_RIGHT -> constraintSet.connect(relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                    ConstraintSet.RIGHT)
+            Coachmark.ALIGNMENT_RIGHT -> constraintSet.connect(
+                relatedViewId, ConstraintSet.LEFT, verticalGuideId,
+                ConstraintSet.RIGHT
+            )
         }
 
         constraintSet.applyTo(contentLayout)
         contentLayout.post { item.relatedSpotView?.visibility = View.VISIBLE }
     }
 
-    private fun calculateRelatedViewMaxWidth(center: IntArray, item: Coachmark<View>, spotDiameter: Int) {
+    private fun calculateRelatedViewMaxWidth(
+        center: IntArray,
+        item: Coachmark<View>,
+        spotWidth: Int
+    ) {
 
         val screenWidth = getDisplayWidhtPx(context)
         val margin = dpToPixels(context, 24)
@@ -347,7 +451,7 @@ class FlexibleCoachmark : RelativeLayout {
                 width -= margin * 2
             } else {
                 width -= margin
-                width -= dpToPixels(context, spotDiameter / 2)
+                width -= dpToPixels(context, spotWidth / 2)
 
                 if (item.alignment == Coachmark.ALIGNMENT_LEFT) {
                     if (item.paddings[2] != 0) {
@@ -367,12 +471,15 @@ class FlexibleCoachmark : RelativeLayout {
                     if (item.paddings[2] != 0) {
                         width -= dpToPixels(context, item.paddings[2])
                     }
-                    width -= screenWidth - (center[0] - dpToPixels(context, spotDiameter / 2).toFloat()).toInt()
+                    width -= screenWidth - (center[0] - dpToPixels(
+                        context,
+                        spotWidth / 2
+                    ).toFloat()).toInt()
                 } else if (item.position == Coachmark.POSITION_RIGHT) {
                     if (item.paddings[1] != 0) {
                         width -= dpToPixels(context, item.paddings[1])
                     }
-                    width -= dpToPixels(context, spotDiameter) / 2
+                    width -= dpToPixels(context, spotWidth) / 2
                     width -= center[0]
                 }
             }
