@@ -8,7 +8,6 @@ import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.Nullable
@@ -132,8 +131,6 @@ internal class SpotView : AppCompatImageView {
     }
 
     companion object {
-        internal const val PIXELS_PER_FRAME = 5
-
         private const val IDLE = 0
         private const val ON_ANIMATION = 1
     }

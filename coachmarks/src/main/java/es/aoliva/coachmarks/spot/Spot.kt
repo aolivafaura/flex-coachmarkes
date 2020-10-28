@@ -4,7 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 
-internal abstract class Spot(val rectF: RectF, val animate: Boolean) {
+internal abstract class Spot(val rectF: RectF, val animate: Boolean, val animationVelocity: Int) {
 
     internal var direction: Int = 0
     internal var currentRect: RectF? = null

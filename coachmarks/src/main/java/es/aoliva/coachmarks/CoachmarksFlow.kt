@@ -31,6 +31,8 @@ class CoachmarksFlow : RelativeLayout {
 
     var dismissListener: OnCoackmarkDismissedListener? = null
     var initialDelay = 200L
+    var animate = true
+    var animationVelocity = 8
 
     /**
      * Notifies when coachmark view is dismissed
@@ -53,6 +55,10 @@ class CoachmarksFlow : RelativeLayout {
     private constructor(context: Context, builder: Builder) : super(context) {
         steps = builder.steps
         initialDelay = builder.initialDelay
+        animate = builder.animate
+        if (builder.animate && builder.animationVelocity > 0) {
+            animationVelocity = builder.animationVelocity
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -76,10 +82,7 @@ class CoachmarksFlow : RelativeLayout {
     /**
      * @return `true` whether there is another step left, `false` if isn't
      */
-    fun hasNextStep(): Boolean {
-
-        return currentStep < steps!!.size - 1
-    }
+    fun hasNextStep(): Boolean = currentStep < steps!!.size - 1
 
     /**
      * Advance to next step
@@ -134,7 +137,9 @@ class CoachmarksFlow : RelativeLayout {
         return null
     }
 
-    private fun drawStep(item: Coachmark<View>) {
+    private fun drawStep(
+        item: Coachmark<View>
+    ) {
 
         removeView(findViewById(relatedViewId))
 
@@ -180,7 +185,7 @@ class CoachmarksFlow : RelativeLayout {
                     }
                     else -> pixelsToDp(context, focusView.height).toInt()
                 }
-                drawSpot(center, height, radius)
+                drawSpot(center, height, radius, item.cornerRadius)
             }
         }
         val anchorPoint = calculateAnchorPoint(center, item, spot)
@@ -233,7 +238,7 @@ class CoachmarksFlow : RelativeLayout {
         return anchorPoint
     }
 
-    private fun drawSpot(coordinates: IntArray, height: Int, width: Int): Spot {
+    private fun drawSpot(coordinates: IntArray, height: Int, width: Int, cornerRadius: Int): Spot {
 
         if (spotView == null) {
             spotView = SpotView(context)
@@ -256,12 +261,20 @@ class CoachmarksFlow : RelativeLayout {
             bottomCoordinate.toFloat()
         )
 
-        val spot = RectangleSpot(rect, height.toFloat(), width.toFloat(), 0f, true)
+        val spot =
+            RectangleSpot(
+                rect,
+                height.toFloat(),
+                width.toFloat(),
+                cornerRadius.toFloat(),
+                animate,
+                animationVelocity
+            )
         spot.direction = EXPAND
 
-        spotView!!.removeLastSpot()
-        spotView!!.addSpot(spot)
-        spotView!!.startSequence()
+        spotView?.removeLastSpot()
+        spotView?.addSpot(spot)
+        spotView?.startSequence()
 
         return spot
     }
@@ -287,12 +300,12 @@ class CoachmarksFlow : RelativeLayout {
             bottomCoordinate.toFloat()
         )
 
-        val spot = CircleSpot(rect, radius.toFloat(), true)
+        val spot = CircleSpot(rect, radius.toFloat(), animate, animationVelocity)
         spot.direction = EXPAND
 
-        spotView!!.removeLastSpot()
-        spotView!!.addSpot(spot)
-        spotView!!.startSequence()
+        spotView?.removeLastSpot()
+        spotView?.addSpot(spot)
+        spotView?.startSequence()
 
         return spot
     }
@@ -519,6 +532,8 @@ class CoachmarksFlow : RelativeLayout {
     class Builder(private val context: Context) {
         var steps = mutableListOf<Coachmark<View>>()
         var initialDelay = 0L
+        var animate = true
+        var animationVelocity = 0
 
         fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
             apply { steps.addAll(listSteps as List<Coachmark<View>>) }
@@ -527,6 +542,9 @@ class CoachmarksFlow : RelativeLayout {
             apply { steps.add(step as Coachmark<View>) }
 
         fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
+        fun withAnimation(animate: Boolean) = apply { this.animate = animate }
+        fun animationVelocity(animationVelocity: Int) = apply { this.animationVelocity = animationVelocity }
+
         fun build() = CoachmarksFlow(context, this)
     }
 

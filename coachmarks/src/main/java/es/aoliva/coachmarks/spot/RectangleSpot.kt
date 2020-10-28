@@ -10,8 +10,9 @@ internal class RectangleSpot(
     override val height: Float,
     override val width: Float,
     override val rounded: Float,
-    animate: Boolean
-) : Spot(rectF, animate) {
+    animate: Boolean,
+    animationVelocity: Int
+) : Spot(rectF, animate, animationVelocity) {
 
     private var pixelsPerFrameX: Int = 0
     private var pixelsPerFrameY: Int = 0
@@ -19,15 +20,19 @@ internal class RectangleSpot(
     override fun draw(canvas: Canvas, paint: Paint): Boolean {
         if (currentRect == null) {
             currentRect = calculateCurrentRect()
-            if (height > width) {
-                pixelsPerFrameX = calculatePixelsPerFrameProportion()
-                pixelsPerFrameY = SpotView.PIXELS_PER_FRAME
-            } else if (width > height) {
-                pixelsPerFrameY = calculatePixelsPerFrameProportion()
-                pixelsPerFrameX = SpotView.PIXELS_PER_FRAME
-            } else {
-                pixelsPerFrameX = SpotView.PIXELS_PER_FRAME
-                pixelsPerFrameY = SpotView.PIXELS_PER_FRAME
+            when {
+                height > width -> {
+                    pixelsPerFrameX = calculatePixelsPerFrameProportion()
+                    pixelsPerFrameY = animationVelocity
+                }
+                width > height -> {
+                    pixelsPerFrameY = calculatePixelsPerFrameProportion()
+                    pixelsPerFrameX = animationVelocity
+                }
+                else -> {
+                    pixelsPerFrameX = animationVelocity
+                    pixelsPerFrameY = animationVelocity
+                }
             }
             canvas.drawRoundRect(currentRect!!, rounded, rounded, paint)
             return true
@@ -92,7 +97,7 @@ internal class RectangleSpot(
         val minLengthAxis = minOf(height, width)
 
         val proportion = minLengthAxis / maxLengthAxis
-        return ceil(SpotView.PIXELS_PER_FRAME * proportion).toInt()
+        return ceil(animationVelocity * proportion).toInt()
     }
 
     private fun calculateCurrentRect(): RectF {

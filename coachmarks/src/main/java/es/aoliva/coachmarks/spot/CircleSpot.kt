@@ -4,8 +4,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 
-internal class CircleSpot(rectF: RectF, private val radius: Float, animate: Boolean) :
-    Spot(rectF, animate) {
+internal class CircleSpot(rectF: RectF, private val radius: Float, animate: Boolean, animationVelocity: Int) :
+    Spot(rectF, animate, animationVelocity) {
 
     override val rounded = radius
     override val width = radius
@@ -52,13 +52,13 @@ internal class CircleSpot(rectF: RectF, private val radius: Float, animate: Bool
 
     private fun calculatePixelsToExpand(): Int {
         // This is a circle, so check just one side is all right
-        return if ((currentRect!!.right + SpotView.PIXELS_PER_FRAME) <= rectF.right) SpotView.PIXELS_PER_FRAME
+        return if ((currentRect!!.right + animationVelocity) <= rectF.right) animationVelocity
         else (rectF.right - currentRect!!.right).toInt()
     }
 
     private fun calculatePixelsToCollapse(): Int {
         // This is a circle, so check just one side is all right
-        return if (currentRect!!.right - currentRect!!.left >= SpotView.PIXELS_PER_FRAME) SpotView.PIXELS_PER_FRAME
+        return if (currentRect!!.right - currentRect!!.left >= animationVelocity) animationVelocity
         else (currentRect!!.right - currentRect!!.left).toInt()
     }
 

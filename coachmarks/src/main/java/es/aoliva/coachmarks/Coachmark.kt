@@ -12,14 +12,15 @@ class Coachmark<T : View> {
     var sizePercentage: Double = -1.0
 
     @IdRes
-    var targetId: Int = 0
-    var target: View? = null
-    lateinit var position: Position
-    lateinit var alignment: Alignment
-    var relatedSpotView: T? = null
+    internal var targetId: Int = 0
+    internal var target: View? = null
+    internal var position: Position
+    internal var alignment: Alignment
+    internal var relatedSpotView: T? = null
     internal var maxWidth = -1
-    val paddings = intArrayOf(0, 0, 0, 0)
-    var shape: Shape = Shape.CIRCLE
+    internal var paddings = intArrayOf(0, 0, 0, 0)
+    internal var shape: Shape = Shape.CIRCLE
+    internal var cornerRadius: Int = 0
 
     /**
      * @param targetId        Desired view id to be spotted
@@ -83,6 +84,8 @@ class Coachmark<T : View> {
         private var position = Position.TOP
         private var shape = Shape.CIRCLE
         private var sizePercentage: Double = 100.0
+        private val paddings = intArrayOf(0, 0, 0, 0)
+        private var cornerRadius = 0
 
         private var targetView: View? = null
         private var targetViewId: Int? = null
@@ -99,22 +102,35 @@ class Coachmark<T : View> {
         fun alignment(alignment: Alignment) = apply { this.aligment = alignment }
         fun position(position: Position) = apply { this.position = position }
         fun shape(shape: Shape) = apply { this.shape = shape }
+        fun padding(top: Int, left: Int, right: Int, bottom: Int) = apply {
+            this.paddings[0] = top
+            this.paddings[1] = left
+            this.paddings[2] = right
+            this.paddings[3] = bottom
+        }
+
+        fun cornerRadius(corners: Int) = apply { this.cornerRadius = corners }
+
         fun build(): Coachmark<TYPE> = when {
             (targetView != null && targetViewId != null) -> {
-                throw RuntimeException("Enter only ")
+                throw RuntimeException("Call only one of these methods \"withView\" or \"withViewId\"")
             }
             (targetView != null) -> {
                 Coachmark(targetView!!, relatedSpotView, position, aligment, shape).apply {
                     sizePercentage = this@Builder.sizePercentage
+                    paddings = this@Builder.paddings
+                    cornerRadius = this@Builder.cornerRadius
                 }
             }
             (targetViewId != null) -> {
                 Coachmark(targetViewId!!, relatedSpotView, position, aligment, shape).apply {
                     sizePercentage = this@Builder.sizePercentage
+                    paddings = this@Builder.paddings
+                    cornerRadius = this@Builder.cornerRadius
                 }
             }
             else -> {
-                throw RuntimeException("")
+                throw RuntimeException("Call one of these methods \"withView\" or \"withViewId\"")
             }
         }
     }
