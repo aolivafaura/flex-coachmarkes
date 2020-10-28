@@ -35,7 +35,8 @@ class MainActivity : AppCompatActivity() {
                 .sizePercentage(100.0)
                 .alignment(Coachmark.Alignment.LEFT)
                 .position(Coachmark.Position.BOTTOM)
-                .shape(Coachmark.Shape.CIRCLE)
+                .shape(Coachmark.Shape.RECTANGLE)
+                .cornerRadius(10)
                 .build()
 
             val coachMark3: Coachmark<Button> = Coachmark.Builder(relatedButton)
@@ -43,13 +44,13 @@ class MainActivity : AppCompatActivity() {
                 .sizePercentage(100.0)
                 .alignment(Coachmark.Alignment.TOP)
                 .position(Coachmark.Position.RIGHT)
+                .padding(50, 0, 100, 0)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
-//            c3.setPaddings(0, 20, 5, 10)
-
             val coachmarksFlow = CoachmarksFlow.with(this)
                 .steps(listOf(coachMark1, coachMark2, coachMark3))
+//                .animationVelocity(10)
                 .initialDelay(1000)
                 .build().apply {
                     dismissListener = object : CoachmarksFlow.OnCoackmarkDismissedListener {
