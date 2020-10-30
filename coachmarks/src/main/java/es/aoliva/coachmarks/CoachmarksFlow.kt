@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.RectF
 import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -19,7 +20,11 @@ import es.aoliva.coachmarks.spot.Spot
 import es.aoliva.coachmarks.spot.Spot.Companion.EXPAND
 import es.aoliva.coachmarks.spot.SpotView
 
-class CoachmarksFlow : RelativeLayout {
+class CoachmarksFlow @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0
+) : RelativeLayout(context, attrs, defStyleAttr) {
 
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
@@ -41,32 +46,31 @@ class CoachmarksFlow : RelativeLayout {
         fun onCoachmarkDismissed()
     }
 
-    // CONSTRUCTOR ---------------------------------------------------------------------------------
-    constructor(context: Context) : super(context)
-
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
-
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(
-        context,
-        attrs,
-        defStyleAttr
-    )
-
-    private constructor(context: Context, builder: Builder) : super(context) {
+    private fun initView(builder: Builder): CoachmarksFlow {
         steps = builder.steps
         initialDelay = builder.initialDelay
         animate = builder.animate
         if (builder.animate && builder.animationVelocity > 0) {
             animationVelocity = builder.animationVelocity
         }
+
+        return this
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
+        Log.v(TAG, "Attached to window")
         steps?.let {
             drawStep(steps!![currentStep])
-        } ?: Log.e("FLEXIBLE COACH MARK", "Please set desired steps before invoke show method")
+        } ?: Log.v(TAG, "Please set desired steps before invoke show method")
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        Log.v(TAG, "Detached from window")
+
+
     }
 
     // PUBLIC METHODS ------------------------------------------------------------------------------
@@ -108,11 +112,11 @@ class CoachmarksFlow : RelativeLayout {
     fun getCurrentStepView() {
         steps?.let {
             steps!![currentStep]
-        } ?: Log.e("FLEXIBLE COACH MARK", "There is no steps defined")
+        } ?: Log.v(TAG, "There is no steps defined")
     }
 
     fun show() {
-        Handler().postDelayed({
+        Handler(Looper.getMainLooper()).postDelayed({
             val vg = getActivity()?.window?.decorView?.rootView as ViewGroup
             val params = RelativeLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
@@ -137,10 +141,7 @@ class CoachmarksFlow : RelativeLayout {
         return null
     }
 
-    private fun drawStep(
-        item: Coachmark<View>
-    ) {
-
+    private fun drawStep(item: Coachmark<View>) {
         removeView(findViewById(relatedViewId))
 
         val focusView: View? =
@@ -188,9 +189,22 @@ class CoachmarksFlow : RelativeLayout {
                 drawSpot(center, height, radius, item.cornerRadius)
             }
         }
+        assignOriginalTargetRect(spot, focusView)
         val anchorPoint = calculateAnchorPoint(center, item, spot)
         calculateRelatedViewMaxWidth(center, item, spotWidth)
         drawRelatedView(item, anchorPoint)
+    }
+
+    private fun assignOriginalTargetRect(item: Spot, focusView: View?) {
+        val coordinates = IntArray(2)
+        focusView!!.getLocationInWindow(coordinates)
+
+        item.targetViewRect = RectF(
+            coordinates[0].toFloat(),
+            coordinates[1].toFloat(),
+            (coordinates[0] + focusView.width).toFloat(),
+            (coordinates[1] + focusView.height).toFloat()
+        )
     }
 
     private fun calculateCenter(focusView: View?): IntArray {
@@ -222,15 +236,12 @@ class CoachmarksFlow : RelativeLayout {
         if (padding[0] > 0) {
             anchorPoint[1] = anchorPoint[1] + dpToPixels(context, padding[0])
         }
-
         if (padding[1] > 0) {
             anchorPoint[0] = anchorPoint[0] + dpToPixels(context, padding[1])
         }
-
         if (padding[2] > 0) {
             anchorPoint[0] = anchorPoint[0] - dpToPixels(context, padding[2])
         }
-
         if (padding[3] > 0) {
             anchorPoint[1] = anchorPoint[1] - dpToPixels(context, padding[3])
         }
@@ -261,15 +272,14 @@ class CoachmarksFlow : RelativeLayout {
             bottomCoordinate.toFloat()
         )
 
-        val spot =
-            RectangleSpot(
-                rect,
-                height.toFloat(),
-                width.toFloat(),
-                cornerRadius.toFloat(),
-                animate,
-                animationVelocity
-            )
+        val spot = RectangleSpot(
+            rect,
+            height.toFloat(),
+            width.toFloat(),
+            cornerRadius.toFloat(),
+            animate,
+            animationVelocity
+        )
         spot.direction = EXPAND
 
         spotView?.removeLastSpot()
@@ -311,7 +321,6 @@ class CoachmarksFlow : RelativeLayout {
     }
 
     private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray) {
-
         val contentLayout = ConstraintLayout(context)
         addView(
             contentLayout, RelativeLayout.LayoutParams(
@@ -543,9 +552,10 @@ class CoachmarksFlow : RelativeLayout {
 
         fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
         fun withAnimation(animate: Boolean) = apply { this.animate = animate }
-        fun animationVelocity(animationVelocity: Int) = apply { this.animationVelocity = animationVelocity }
+        fun animationVelocity(animationVelocity: Int) =
+            apply { this.animationVelocity = animationVelocity }
 
-        fun build() = CoachmarksFlow(context, this)
+        fun build() = CoachmarksFlow(context).initView(this)
     }
 
     companion object {

@@ -8,12 +8,14 @@ import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.Nullable
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
 import es.aoliva.coachmarks.R
+import es.aoliva.coachmarks.TAG
 import es.aoliva.coachmarks.spot.Spot.Companion.COLLAPSE
 
 internal class SpotView : AppCompatImageView {
@@ -119,6 +121,8 @@ internal class SpotView : AppCompatImageView {
         setOnTouchListener { _, event ->
             val isValidEvent = isEventInsideSpot(event) && state == IDLE
             if (isValidEvent) {
+                Log.v(TAG, "Target view click")
+                // TODO: Listener invoked here
                 event.action != MotionEvent.ACTION_DOWN
             } else {
                 true
@@ -127,7 +131,7 @@ internal class SpotView : AppCompatImageView {
     }
 
     private fun isEventInsideSpot(event: MotionEvent): Boolean {
-        return currentSpot!!.rectF.contains(event.x, event.y)
+        return currentSpot?.targetViewRect?.contains(event.x, event.y) == true
     }
 
     companion object {

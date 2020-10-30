@@ -8,6 +8,7 @@ internal abstract class Spot(val rectF: RectF, val animate: Boolean, val animati
 
     internal var direction: Int = 0
     internal var currentRect: RectF? = null
+    internal var targetViewRect: RectF? = null
 
     abstract val rounded: Float
     abstract val width: Float
