@@ -34,12 +34,13 @@ class CoachmarksFlow @JvmOverloads constructor(
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
 
-    private var steps: List<Coachmark<View>>? = null
+    var steps: List<Coachmark<View>>? = null
+        private set
     private var currentStep = 0
 
     private val relatedViewId = R.id.view_id
 
-    var dismissListener: OnCoackmarkDismissedListener? = null
+    var coachMarkListener: CoachMarkListener? = null
     var initialDelay = 200L
     var animate = true
     var animationVelocity = 8
@@ -47,8 +48,10 @@ class CoachmarksFlow @JvmOverloads constructor(
     /**
      * Notifies when coachmark view is dismissed
      */
-    interface OnCoackmarkDismissedListener {
-        fun onCoachmarkDismissed()
+    interface CoachMarkListener {
+        fun onCoachmarkFlowDismissed()
+        fun onCoachmarkFlowShowed()
+        fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
     }
 
     private fun initView(builder: Builder): CoachmarksFlow {
@@ -80,15 +83,6 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     // PUBLIC METHODS ------------------------------------------------------------------------------
     /**
-     * Steps will be executed in list order
-     *
-     * @param steps
-     */
-    fun <T : View> setSteps(steps: List<Coachmark<T>>) {
-        this.steps = steps as List<Coachmark<View>>
-    }
-
-    /**
      * @return `true` whether there is another step left, `false` if isn't
      */
     fun hasNextStep(): Boolean = currentStep < steps!!.size - 1
@@ -110,7 +104,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     fun close() {
         fadeOut {
             (parent as ViewGroup).removeView(this)
-            dismissListener?.onCoachmarkDismissed()
+            coachMarkListener?.onCoachmarkFlowDismissed()
         }
     }
 
@@ -123,12 +117,13 @@ class CoachmarksFlow @JvmOverloads constructor(
     fun show() {
         Handler(Looper.getMainLooper()).postDelayed({
             val vg = getActivity()?.window?.decorView?.rootView as ViewGroup
-            val params = RelativeLayout.LayoutParams(
+            val params = LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
 
             layoutParams = params
             visibility = View.INVISIBLE
+            coachMarkListener?.onCoachmarkFlowShowed()
             vg.addView(this@CoachmarksFlow)
             fadeIn(1)
         }, initialDelay)
@@ -163,16 +158,15 @@ class CoachmarksFlow @JvmOverloads constructor(
             return
         }
 
-        val spotWidth =
-            when {
-                item.sizePercentage > 0 -> {
-                    pixelsToDp(
-                        context,
-                        (focusView.width * (item.sizePercentage / 100)).toInt()
-                    ).toInt()
-                }
-                else -> pixelsToDp(context, focusView.width).toInt()
+        val spotWidth = when {
+            item.sizePercentage > 0 -> {
+                pixelsToDp(
+                    context,
+                    (focusView.width * (item.sizePercentage / 100)).toInt()
+                ).toInt()
             }
+            else -> pixelsToDp(context, focusView.width).toInt()
+        }
 
         val center = calculateCenter(focusView)
         val radius = dpToPixels(context, spotWidth / 2)
@@ -255,9 +249,10 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     private fun drawSpot(coordinates: IntArray, height: Int, width: Int, cornerRadius: Int): Spot {
-
         if (spotView == null) {
-            spotView = SpotView(context)
+            spotView = SpotView(context) { state, index ->
+                coachMarkListener?.onChangedCoachMarkState(state, index)
+            }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
                 ConstraintLayout.LayoutParams.MATCH_PARENT
@@ -287,17 +282,19 @@ class CoachmarksFlow @JvmOverloads constructor(
         )
         spot.direction = EXPAND
 
+        callListeners()
         spotView?.removeLastSpot()
-        spotView?.addSpot(spot)
+        spotView?.addSpot(spot, currentStep)
         spotView?.startSequence()
 
         return spot
     }
 
     private fun drawSpot(coordinates: IntArray, radius: Int): Spot {
-
         if (spotView == null) {
-            spotView = SpotView(context)
+            spotView = SpotView(context) { state, index ->
+                coachMarkListener?.onChangedCoachMarkState(state, index)
+            }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
                 ConstraintLayout.LayoutParams.MATCH_PARENT
@@ -318,17 +315,34 @@ class CoachmarksFlow @JvmOverloads constructor(
         val spot = CircleSpot(rect, radius.toFloat(), animate, animationVelocity)
         spot.direction = EXPAND
 
+        callListeners()
         spotView?.removeLastSpot()
-        spotView?.addSpot(spot)
+        spotView?.addSpot(spot, currentStep)
         spotView?.startSequence()
 
         return spot
     }
 
+    private fun callListeners() {
+        if (currentStep != 0) {
+            coachMarkListener?.onChangedCoachMarkState(
+                if (animate) Coachmark.CoachMarkState.CLOSING
+                else Coachmark.CoachMarkState.CLOSED,
+                currentStep - 1
+            )
+        }
+        if (animate) {
+            coachMarkListener?.onChangedCoachMarkState(
+                Coachmark.CoachMarkState.OPENING,
+                currentStep
+            )
+        }
+    }
+
     private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray) {
         val contentLayout = ConstraintLayout(context)
         addView(
-            contentLayout, RelativeLayout.LayoutParams(
+            contentLayout, LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -369,7 +383,6 @@ class CoachmarksFlow @JvmOverloads constructor(
         item: Coachmark<View>, contentLayout: ConstraintLayout,
         anchorPoint: IntArray
     ) {
-
         val verticalGuideId = R.id.vertical_guide
         val horizontalGuideId = R.id.horizontal_guide
 

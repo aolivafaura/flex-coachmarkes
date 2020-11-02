@@ -135,6 +135,13 @@ class Coachmark<T : View> {
         }
     }
 
+    enum class CoachMarkState {
+        OPENING,
+        OPENED,
+        CLOSING,
+        CLOSED
+    }
+
     enum class Shape {
         CIRCLE, RECTANGLE
     }

@@ -4,20 +4,25 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 
-internal class CircleSpot(rectF: RectF, private val radius: Float, animate: Boolean, animationVelocity: Int) :
-    Spot(rectF, animate, animationVelocity) {
+internal class CircleSpot(
+    rectF: RectF,
+    private val radius: Float,
+    animate: Boolean,
+    animationVelocity: Int
+) : Spot(rectF, animate, animationVelocity) {
 
     override val rounded = radius
     override val width = radius
     override val height = radius
 
-    override fun draw(canvas: Canvas, paint: Paint): Boolean {
+    override fun draw(
+        canvas: Canvas,
+        paint: Paint
+    ): Boolean {
         if (currentRect == null) {
-            currentRect = calculateCurrentRect()
-            canvas.drawRoundRect(currentRect!!, radius, radius, paint)
+            drawFirstSpot(canvas, paint)
             return true
         }
-
         when (direction) {
             EXPAND -> {
                 if (currentRect!!.left <= rectF.left) {
@@ -50,25 +55,28 @@ internal class CircleSpot(rectF: RectF, private val radius: Float, animate: Bool
         }
     }
 
+    override fun drawIdle(canvas: Canvas, paint: Paint) {
+        canvas.drawRoundRect(rectF, radius, radius, paint)
+    }
+
+    private fun drawFirstSpot(canvas: Canvas, paint: Paint) {
+        currentRect = calculateCurrentRect()
+        canvas.drawRoundRect(currentRect!!, radius, radius, paint)
+    }
+
     private fun calculatePixelsToExpand(): Int {
         // This is a circle, so check just one side is all right
-        return if ((currentRect!!.right + animationVelocity) <= rectF.right) animationVelocity
-        else (rectF.right - currentRect!!.right).toInt()
+        return when {
+            (currentRect!!.right + animationVelocity) <= rectF.right -> animationVelocity
+            else -> (rectF.right - currentRect!!.right).toInt()
+        }
     }
 
     private fun calculatePixelsToCollapse(): Int {
         // This is a circle, so check just one side is all right
-        return if (currentRect!!.right - currentRect!!.left >= animationVelocity) animationVelocity
-        else (currentRect!!.right - currentRect!!.left).toInt()
-    }
-
-    private fun calculateCurrentRect(): RectF {
-        return if (direction == COLLAPSE) {
-            rectF
-        } else {
-            val y = rectF.bottom - (rectF.bottom - rectF.top) / 2
-            val x = rectF.right - (rectF.right - rectF.left) / 2
-            RectF(x, y, x, y)
+        return when {
+            currentRect!!.right - currentRect!!.left >= animationVelocity -> animationVelocity
+            else -> (currentRect!!.right - currentRect!!.left).toInt()
         }
     }
 }
