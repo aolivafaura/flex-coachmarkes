@@ -34,21 +34,27 @@ class CoachmarksFlow @JvmOverloads constructor(
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
 
-    private var steps: List<Coachmark<View>>? = null
+    var steps: List<Coachmark<View>>? = null
+        private set
     private var currentStep = 0
 
     private val relatedViewId = R.id.view_id
 
-    var dismissListener: OnCoackmarkDismissedListener? = null
-    var initialDelay = 200L
-    var animate = true
-    var animationVelocity = 8
+    var coachMarkListener: CoachMarkListener? = null
+    private var initialDelay = 200L
+    private var animate = true
+    private var animationVelocity = 8
+
+    private var currentFocusView: View? = null
+    private var currentLayoutChangeListener: OnLayoutChangeListener? = null
 
     /**
      * Notifies when coachmark view is dismissed
      */
-    interface OnCoackmarkDismissedListener {
-        fun onCoachmarkDismissed()
+    interface CoachMarkListener {
+        fun onCoachmarkFlowDismissed()
+        fun onCoachmarkFlowShowed()
+        fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
     }
 
     private fun initView(builder: Builder): CoachmarksFlow {
@@ -80,15 +86,6 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     // PUBLIC METHODS ------------------------------------------------------------------------------
     /**
-     * Steps will be executed in list order
-     *
-     * @param steps
-     */
-    fun <T : View> setSteps(steps: List<Coachmark<T>>) {
-        this.steps = steps as List<Coachmark<View>>
-    }
-
-    /**
      * @return `true` whether there is another step left, `false` if isn't
      */
     fun hasNextStep(): Boolean = currentStep < steps!!.size - 1
@@ -108,27 +105,32 @@ class CoachmarksFlow @JvmOverloads constructor(
      * Close view
      */
     fun close() {
+        currentFocusView?.takeIf { currentLayoutChangeListener != null }?.removeOnLayoutChangeListener(currentLayoutChangeListener)
         fadeOut {
             (parent as ViewGroup).removeView(this)
-            dismissListener?.onCoachmarkDismissed()
+            coachMarkListener?.onCoachmarkFlowDismissed()
         }
     }
 
-    fun getCurrentStepView() {
-        steps?.let {
+    fun getCurrentStepView(): Coachmark<View>? {
+        return steps?.let {
             steps!![currentStep]
-        } ?: Log.v(TAG, "There is no steps defined")
+        } ?: run {
+            Log.v(TAG, "There is no steps defined")
+            null
+        }
     }
 
     fun show() {
         Handler(Looper.getMainLooper()).postDelayed({
             val vg = getActivity()?.window?.decorView?.rootView as ViewGroup
-            val params = RelativeLayout.LayoutParams(
+            val params = LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
 
             layoutParams = params
             visibility = View.INVISIBLE
+            coachMarkListener?.onCoachmarkFlowShowed()
             vg.addView(this@CoachmarksFlow)
             fadeIn(1)
         }, initialDelay)
@@ -147,6 +149,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     private fun drawStep(item: Coachmark<View>) {
+        currentFocusView?.takeIf { currentLayoutChangeListener != null }?.removeOnLayoutChangeListener(currentLayoutChangeListener)
         removeView(findViewById(relatedViewId))
 
         val focusView: View? =
@@ -163,16 +166,15 @@ class CoachmarksFlow @JvmOverloads constructor(
             return
         }
 
-        val spotWidth =
-            when {
-                item.sizePercentage > 0 -> {
-                    pixelsToDp(
-                        context,
-                        (focusView.width * (item.sizePercentage / 100)).toInt()
-                    ).toInt()
-                }
-                else -> pixelsToDp(context, focusView.width).toInt()
+        val spotWidth = when {
+            item.sizePercentage > 0 -> {
+                pixelsToDp(
+                    context,
+                    (focusView.width * (item.sizePercentage / 100)).toInt()
+                ).toInt()
             }
+            else -> pixelsToDp(context, focusView.width).toInt()
+        }
 
         val center = calculateCenter(focusView)
         val radius = dpToPixels(context, spotWidth / 2)
@@ -198,6 +200,39 @@ class CoachmarksFlow @JvmOverloads constructor(
         val anchorPoint = calculateAnchorPoint(center, item, spot)
         calculateRelatedViewMaxWidth(center, item, spotWidth)
         drawRelatedView(item, anchorPoint)
+
+        val layoutChangeListener = OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (oldTop != top || oldBottom != bottom || oldRight != right || oldLeft != left) {
+                if (steps!![currentStep] == item) {
+                    Log.v(TAG, "Redrawing step $currentStep....")
+                    animate = false
+                    spotView?.destroyLastSpot()
+                    drawStep(item)
+                    animate = true
+                }
+            }
+        }
+        focusView.addOnLayoutChangeListener(layoutChangeListener)
+
+        currentFocusView = focusView
+        currentLayoutChangeListener = layoutChangeListener
+
+        item.onRelatedSpotViewChanged = { animate ->
+            if (steps!![currentStep] == item) {
+                Log.v(TAG, "Replacing related view...")
+                val currentRelatedView = this@CoachmarksFlow.findViewById<View>(relatedViewId)
+
+                if (animate) {
+                    currentRelatedView.fadeOut {
+                        this@CoachmarksFlow.removeView(currentRelatedView)
+                        drawRelatedView(item, anchorPoint, true)
+                    }
+                } else {
+                    this@CoachmarksFlow.removeView(currentRelatedView)
+                    drawRelatedView(item, anchorPoint)
+                }
+            }
+        }
     }
 
     private fun assignOriginalTargetRect(item: Spot, focusView: View?) {
@@ -236,28 +271,21 @@ class CoachmarksFlow @JvmOverloads constructor(
             Coachmark.Position.RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
         }
 
-        val padding = item.paddings
-
-        if (padding[0] > 0) {
-            anchorPoint[1] = anchorPoint[1] + dpToPixels(context, padding[0])
+        if (item.deviations[0] != 0) {
+            anchorPoint[0] = anchorPoint[0] + dpToPixels(context, item.deviations[0])
         }
-        if (padding[1] > 0) {
-            anchorPoint[0] = anchorPoint[0] + dpToPixels(context, padding[1])
-        }
-        if (padding[2] > 0) {
-            anchorPoint[0] = anchorPoint[0] - dpToPixels(context, padding[2])
-        }
-        if (padding[3] > 0) {
-            anchorPoint[1] = anchorPoint[1] - dpToPixels(context, padding[3])
+        if (item.deviations[1] != 0) {
+            anchorPoint[1] = anchorPoint[1] + dpToPixels(context, item.deviations[1])
         }
 
         return anchorPoint
     }
 
     private fun drawSpot(coordinates: IntArray, height: Int, width: Int, cornerRadius: Int): Spot {
-
         if (spotView == null) {
-            spotView = SpotView(context)
+            spotView = SpotView(context) { state, index ->
+                coachMarkListener?.onChangedCoachMarkState(state, index)
+            }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
                 ConstraintLayout.LayoutParams.MATCH_PARENT
@@ -287,17 +315,19 @@ class CoachmarksFlow @JvmOverloads constructor(
         )
         spot.direction = EXPAND
 
+        callListeners()
         spotView?.removeLastSpot()
-        spotView?.addSpot(spot)
+        spotView?.addSpot(spot, currentStep)
         spotView?.startSequence()
 
         return spot
     }
 
     private fun drawSpot(coordinates: IntArray, radius: Int): Spot {
-
         if (spotView == null) {
-            spotView = SpotView(context)
+            spotView = SpotView(context) { state, index ->
+                coachMarkListener?.onChangedCoachMarkState(state, index)
+            }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
                 ConstraintLayout.LayoutParams.MATCH_PARENT
@@ -318,17 +348,34 @@ class CoachmarksFlow @JvmOverloads constructor(
         val spot = CircleSpot(rect, radius.toFloat(), animate, animationVelocity)
         spot.direction = EXPAND
 
+        callListeners()
         spotView?.removeLastSpot()
-        spotView?.addSpot(spot)
+        spotView?.addSpot(spot, currentStep)
         spotView?.startSequence()
 
         return spot
     }
 
-    private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray) {
+    private fun callListeners() {
+        if (currentStep != 0) {
+            coachMarkListener?.onChangedCoachMarkState(
+                if (animate) Coachmark.CoachMarkState.CLOSING
+                else Coachmark.CoachMarkState.CLOSED,
+                currentStep - 1
+            )
+        }
+        if (animate) {
+            coachMarkListener?.onChangedCoachMarkState(
+                Coachmark.CoachMarkState.OPENING,
+                currentStep
+            )
+        }
+    }
+
+    private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray, animate: Boolean = false) {
         val contentLayout = ConstraintLayout(context)
         addView(
-            contentLayout, RelativeLayout.LayoutParams(
+            contentLayout, LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -351,6 +398,10 @@ class CoachmarksFlow @JvmOverloads constructor(
             )
         )
 
+        if (animate) {
+            relatedView?.fadeIn()
+        }
+
         relatedView?.viewTreeObserver?.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -369,7 +420,6 @@ class CoachmarksFlow @JvmOverloads constructor(
         item: Coachmark<View>, contentLayout: ConstraintLayout,
         anchorPoint: IntArray
     ) {
-
         val verticalGuideId = R.id.vertical_guide
         val horizontalGuideId = R.id.horizontal_guide
 
@@ -484,13 +534,13 @@ class CoachmarksFlow @JvmOverloads constructor(
                 width -= dpToPixels(context, spotWidth / 2)
 
                 if (item.alignment == Coachmark.Alignment.LEFT) {
-                    if (item.paddings[2] != 0) {
-                        width -= dpToPixels(context, item.paddings[2])
+                    if (item.deviations[0] > 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= (screenWidth - center[0])
                 } else if (item.alignment == Coachmark.Alignment.RIGHT) {
-                    if (item.paddings[1] != 0) {
-                        width -= dpToPixels(context, item.paddings[1])
+                    if (item.deviations[0] < 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= center[0]
                 }
@@ -498,16 +548,16 @@ class CoachmarksFlow @JvmOverloads constructor(
             Coachmark.Position.LEFT, Coachmark.Position.RIGHT -> {
                 width -= margin
                 if (item.position == Coachmark.Position.LEFT) {
-                    if (item.paddings[2] != 0) {
-                        width -= dpToPixels(context, item.paddings[2])
+                    if (item.deviations[0] > 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= screenWidth - (center[0] - dpToPixels(
                         context,
                         spotWidth / 2
                     ).toFloat()).toInt()
                 } else if (item.position == Coachmark.Position.RIGHT) {
-                    if (item.paddings[1] != 0) {
-                        width -= dpToPixels(context, item.paddings[1])
+                    if (item.deviations[0] < 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= dpToPixels(context, spotWidth) / 2
                     width -= center[0]
@@ -544,10 +594,10 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     class Builder(private val context: Context) {
-        var steps = mutableListOf<Coachmark<View>>()
-        var initialDelay = 0L
-        var animate = true
-        var animationVelocity = 0
+        internal var steps = mutableListOf<Coachmark<View>>()
+        internal var initialDelay = 0L
+        internal var animate = true
+        internal var animationVelocity = 0
 
         fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
             apply { steps.addAll(listSteps as List<Coachmark<View>>) }

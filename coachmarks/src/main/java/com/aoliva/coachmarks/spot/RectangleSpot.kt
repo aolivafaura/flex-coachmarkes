@@ -17,27 +17,14 @@ internal class RectangleSpot(
     private var pixelsPerFrameX: Int = 0
     private var pixelsPerFrameY: Int = 0
 
-    override fun draw(canvas: Canvas, paint: Paint): Boolean {
+    override fun draw(
+        canvas: Canvas,
+        paint: Paint
+    ): Boolean {
         if (currentRect == null) {
-            currentRect = calculateCurrentRect()
-            when {
-                height > width -> {
-                    pixelsPerFrameX = calculatePixelsPerFrameProportion()
-                    pixelsPerFrameY = animationVelocity
-                }
-                width > height -> {
-                    pixelsPerFrameY = calculatePixelsPerFrameProportion()
-                    pixelsPerFrameX = animationVelocity
-                }
-                else -> {
-                    pixelsPerFrameX = animationVelocity
-                    pixelsPerFrameY = animationVelocity
-                }
-            }
-            canvas.drawRoundRect(currentRect!!, rounded, rounded, paint)
+            drawFirstSpot(canvas, paint)
             return true
         }
-
         when (direction) {
             EXPAND -> {
                 if (currentRect!!.left <= rectF.left) {
@@ -72,6 +59,29 @@ internal class RectangleSpot(
         }
     }
 
+    override fun drawIdle(canvas: Canvas, paint: Paint) {
+        canvas.drawRoundRect(rectF, rounded, rounded, paint)
+    }
+
+    private fun drawFirstSpot(canvas: Canvas, paint: Paint) {
+        currentRect = calculateCurrentRect()
+        when {
+            height > width -> {
+                pixelsPerFrameX = calculatePixelsPerFrameProportion()
+                pixelsPerFrameY = animationVelocity
+            }
+            width > height -> {
+                pixelsPerFrameY = calculatePixelsPerFrameProportion()
+                pixelsPerFrameX = animationVelocity
+            }
+            else -> {
+                pixelsPerFrameX = animationVelocity
+                pixelsPerFrameY = animationVelocity
+            }
+        }
+        canvas.drawRoundRect(currentRect!!, rounded, rounded, paint)
+    }
+
     private fun calculatePixelsToExpandX(): Int {
         return if ((currentRect!!.right + pixelsPerFrameX) <= rectF.right) pixelsPerFrameX
         else (rectF.right - currentRect!!.right).toInt()
@@ -98,15 +108,5 @@ internal class RectangleSpot(
 
         val proportion = minLengthAxis / maxLengthAxis
         return ceil(animationVelocity * proportion).toInt()
-    }
-
-    private fun calculateCurrentRect(): RectF {
-        return if (direction == COLLAPSE) {
-            rectF
-        } else {
-            val y = rectF.bottom - (rectF.bottom - rectF.top) / 2
-            val x = rectF.right - (rectF.right - rectF.left) / 2
-            RectF(x, y, x, y)
-        }
     }
 }
