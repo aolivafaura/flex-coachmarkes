@@ -112,10 +112,13 @@ class CoachmarksFlow @JvmOverloads constructor(
         }
     }
 
-    fun getCurrentStepView() {
-        steps?.let {
+    fun getCurrentStepView(): Coachmark<View>? {
+        return steps?.let {
             steps!![currentStep]
-        } ?: Log.v(TAG, "There is no steps defined")
+        } ?: run {
+            Log.v(TAG, "There is no steps defined")
+            null
+        }
     }
 
     fun show() {
@@ -213,6 +216,23 @@ class CoachmarksFlow @JvmOverloads constructor(
 
         currentFocusView = focusView
         currentLayoutChangeListener = layoutChangeListener
+
+        item.onRelatedSpotViewChanged = { animate ->
+            if (steps!![currentStep] == item) {
+                Log.v(TAG, "Replacing related view...")
+                val currentRelatedView = this@CoachmarksFlow.findViewById<View>(relatedViewId)
+
+                if (animate) {
+                    currentRelatedView.fadeOut {
+                        this@CoachmarksFlow.removeView(currentRelatedView)
+                        drawRelatedView(item, anchorPoint, true)
+                    }
+                } else {
+                    this@CoachmarksFlow.removeView(currentRelatedView)
+                    drawRelatedView(item, anchorPoint)
+                }
+            }
+        }
     }
 
     private fun assignOriginalTargetRect(item: Spot, focusView: View?) {
@@ -251,19 +271,11 @@ class CoachmarksFlow @JvmOverloads constructor(
             Coachmark.Position.RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
         }
 
-        val padding = item.paddings
-
-        if (padding[0] > 0) {
-            anchorPoint[1] = anchorPoint[1] + dpToPixels(context, padding[0])
+        if (item.deviations[0] != 0) {
+            anchorPoint[0] = anchorPoint[0] + dpToPixels(context, item.deviations[0])
         }
-        if (padding[1] > 0) {
-            anchorPoint[0] = anchorPoint[0] + dpToPixels(context, padding[1])
-        }
-        if (padding[2] > 0) {
-            anchorPoint[0] = anchorPoint[0] - dpToPixels(context, padding[2])
-        }
-        if (padding[3] > 0) {
-            anchorPoint[1] = anchorPoint[1] - dpToPixels(context, padding[3])
+        if (item.deviations[1] != 0) {
+            anchorPoint[1] = anchorPoint[1] + dpToPixels(context, item.deviations[1])
         }
 
         return anchorPoint
@@ -360,7 +372,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         }
     }
 
-    private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray) {
+    private fun drawRelatedView(item: Coachmark<View>, anchorPoint: IntArray, animate: Boolean = false) {
         val contentLayout = ConstraintLayout(context)
         addView(
             contentLayout, LayoutParams(
@@ -385,6 +397,10 @@ class CoachmarksFlow @JvmOverloads constructor(
                 ConstraintLayout.LayoutParams.WRAP_CONTENT
             )
         )
+
+        if (animate) {
+            relatedView?.fadeIn()
+        }
 
         relatedView?.viewTreeObserver?.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
@@ -518,13 +534,13 @@ class CoachmarksFlow @JvmOverloads constructor(
                 width -= dpToPixels(context, spotWidth / 2)
 
                 if (item.alignment == Coachmark.Alignment.LEFT) {
-                    if (item.paddings[2] != 0) {
-                        width -= dpToPixels(context, item.paddings[2])
+                    if (item.deviations[0] > 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= (screenWidth - center[0])
                 } else if (item.alignment == Coachmark.Alignment.RIGHT) {
-                    if (item.paddings[1] != 0) {
-                        width -= dpToPixels(context, item.paddings[1])
+                    if (item.deviations[0] < 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= center[0]
                 }
@@ -532,16 +548,16 @@ class CoachmarksFlow @JvmOverloads constructor(
             Coachmark.Position.LEFT, Coachmark.Position.RIGHT -> {
                 width -= margin
                 if (item.position == Coachmark.Position.LEFT) {
-                    if (item.paddings[2] != 0) {
-                        width -= dpToPixels(context, item.paddings[2])
+                    if (item.deviations[0] > 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= screenWidth - (center[0] - dpToPixels(
                         context,
                         spotWidth / 2
                     ).toFloat()).toInt()
                 } else if (item.position == Coachmark.Position.RIGHT) {
-                    if (item.paddings[1] != 0) {
-                        width -= dpToPixels(context, item.paddings[1])
+                    if (item.deviations[0] < 0) {
+                        width -= dpToPixels(context, item.deviations[0])
                     }
                     width -= dpToPixels(context, spotWidth) / 2
                     width -= center[0]

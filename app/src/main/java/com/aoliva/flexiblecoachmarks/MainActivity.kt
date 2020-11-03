@@ -1,6 +1,7 @@
 package com.aoliva.flexiblecoachmarks
 
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -21,37 +22,32 @@ class MainActivity : AppCompatActivity() {
     private fun createFirstFlow() {
         findViewById<View>(R.id.button).setOnClickListener {
             val relatedButton = Button(this)
-            val coachmark1: Coachmark<Button> = Coachmark.Builder(relatedButton)
+            val options1 = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.RIGHT)
+            val coachmark1: Coachmark<Button> = Coachmark.Builder(relatedButton, options1)
                 .withViewId(R.id.button)
                 .sizePercentage(100.0)
-                .alignment(Coachmark.Alignment.RIGHT)
-                .position(Coachmark.Position.BOTTOM)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
-            val coachmark2: Coachmark<Button> = Coachmark.Builder(relatedButton)
+            val options2 = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.LEFT)
+            val coachmark2: Coachmark<Button> = Coachmark.Builder(relatedButton, options2)
                 .withViewId(R.id.button2)
                 .sizePercentage(100.0)
-                .alignment(Coachmark.Alignment.LEFT)
-                .position(Coachmark.Position.BOTTOM)
                 .shape(Coachmark.Shape.RECTANGLE)
                 .cornerRadius(10)
                 .build()
 
-            val coachmark3: Coachmark<Button> = Coachmark.Builder(relatedButton)
+            val options3 = Coachmark.RelatedViewOptions(Coachmark.Position.RIGHT, Coachmark.Alignment.TOP)
+            val coachmark3: Coachmark<Button> = Coachmark.Builder(relatedButton, options3)
                 .withViewId(R.id.button5)
                 .sizePercentage(100.0)
-                .alignment(Coachmark.Alignment.TOP)
-                .position(Coachmark.Position.RIGHT)
-                .padding(50, 0, 100, 0)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
-            val coachmark4: Coachmark<Button> = Coachmark.Builder(relatedButton)
+            val options4 = Coachmark.RelatedViewOptions(Coachmark.Position.LEFT, Coachmark.Alignment.TOP)
+            val coachmark4: Coachmark<Button> = Coachmark.Builder(relatedButton, options4)
                 .withViewId(R.id.button6)
                 .sizePercentage(100.0)
-                .alignment(Coachmark.Alignment.TOP)
-                .position(Coachmark.Position.LEFT)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
