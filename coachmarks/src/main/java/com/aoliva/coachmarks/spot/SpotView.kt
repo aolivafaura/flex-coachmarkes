@@ -38,19 +38,12 @@ internal class SpotView : AppCompatImageView {
         context
     ) {
         this.stateListener = stateListener
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-        // Capture touch events
-        setupTouchListener()
     }
 
     constructor(
         context: Context,
         @Nullable attrs: AttributeSet
-    ) : super(context, attrs) {
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-        // Capture touch events
-        setupTouchListener()
-    }
+    ) : super(context, attrs)
 
     constructor(
         context: Context,
@@ -60,7 +53,9 @@ internal class SpotView : AppCompatImageView {
         context,
         attrs,
         defStyleAttr
-    ) {
+    )
+
+    init {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         // Capture touch events
         setupTouchListener()
@@ -72,7 +67,7 @@ internal class SpotView : AppCompatImageView {
         currentSpot = spots.last()
     }
 
-    fun removeLastSpot() {
+    internal fun removeLastSpot() {
         if (spots.isNotEmpty()) {
             val lastSpot = spots.last()
             lastSpot.takeIf { it.animate }?.apply {
@@ -85,7 +80,13 @@ internal class SpotView : AppCompatImageView {
         }
     }
 
-    fun startSequence() = invalidate()
+    internal fun destroyLastSpot() {
+        if (spots.isNotEmpty()) {
+            spots.removeLast()
+        }
+    }
+
+    internal fun startSequence() = invalidate()
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -140,7 +141,7 @@ internal class SpotView : AppCompatImageView {
     private fun setupTouchListener() {
         setOnTouchListener { _, event ->
             val isValidEvent =
-                isEventInsideSpot(event) && currentSpot?.state == Spot.SpotState.ON_ANIMATION
+                isEventInsideSpot(event) && currentSpot?.state == Spot.SpotState.IDLE
             if (isValidEvent) {
                 Log.v(TAG, "Target view click")
                 // TODO: Listener invoked here

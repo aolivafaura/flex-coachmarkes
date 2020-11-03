@@ -11,10 +11,9 @@ internal abstract class Spot(val rectF: RectF, val animate: Boolean, val animati
     internal var currentRect: RectF? = null
     internal var targetViewRect: RectF? = null
 
-
-    abstract val rounded: Float
-    abstract val width: Float
-    abstract val height: Float
+    internal abstract val rounded: Float
+    internal abstract val width: Float
+    internal abstract val height: Float
 
     abstract fun draw(
         canvas: Canvas,

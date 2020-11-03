@@ -9,7 +9,7 @@ class Coachmark<T : View> {
     // VARIABLES
     // ---------------------------------------------------------------------------------------------
 
-    var sizePercentage: Double = -1.0
+    internal var sizePercentage: Double = -1.0
 
     @IdRes
     internal var targetId: Int = 0
@@ -61,22 +61,6 @@ class Coachmark<T : View> {
         this.alignment = alignment
         this.relatedSpotView = relatedSpotView
         this.shape = type
-    }
-
-    /**
-     * Defined paddings will be applied on related spot view
-     *
-     * @param top    top padding
-     * @param left   left padding
-     * @param right  right padding
-     * @param bottom bottom padding
-     */
-    fun setPaddings(top: Int, left: Int, right: Int, bottom: Int) {
-
-        this.paddings[0] = top
-        this.paddings[1] = left
-        this.paddings[2] = right
-        this.paddings[3] = bottom
     }
 
     class Builder<TYPE : View>(private val relatedSpotView: TYPE) {

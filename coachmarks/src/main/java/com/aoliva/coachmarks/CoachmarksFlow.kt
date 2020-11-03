@@ -41,9 +41,12 @@ class CoachmarksFlow @JvmOverloads constructor(
     private val relatedViewId = R.id.view_id
 
     var coachMarkListener: CoachMarkListener? = null
-    var initialDelay = 200L
-    var animate = true
-    var animationVelocity = 8
+    private var initialDelay = 200L
+    private var animate = true
+    private var animationVelocity = 8
+
+    private var currentFocusView: View? = null
+    private var currentLayoutChangeListener: OnLayoutChangeListener? = null
 
     /**
      * Notifies when coachmark view is dismissed
@@ -102,6 +105,7 @@ class CoachmarksFlow @JvmOverloads constructor(
      * Close view
      */
     fun close() {
+        currentFocusView?.takeIf { currentLayoutChangeListener != null }?.removeOnLayoutChangeListener(currentLayoutChangeListener)
         fadeOut {
             (parent as ViewGroup).removeView(this)
             coachMarkListener?.onCoachmarkFlowDismissed()
@@ -142,6 +146,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     private fun drawStep(item: Coachmark<View>) {
+        currentFocusView?.takeIf { currentLayoutChangeListener != null }?.removeOnLayoutChangeListener(currentLayoutChangeListener)
         removeView(findViewById(relatedViewId))
 
         val focusView: View? =
@@ -192,6 +197,22 @@ class CoachmarksFlow @JvmOverloads constructor(
         val anchorPoint = calculateAnchorPoint(center, item, spot)
         calculateRelatedViewMaxWidth(center, item, spotWidth)
         drawRelatedView(item, anchorPoint)
+
+        val layoutChangeListener = OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            if (oldTop != top || oldBottom != bottom || oldRight != right || oldLeft != left) {
+                if (steps!![currentStep] == item) {
+                    Log.v(TAG, "Redrawing step $currentStep....")
+                    animate = false
+                    spotView?.destroyLastSpot()
+                    drawStep(item)
+                    animate = true
+                }
+            }
+        }
+        focusView.addOnLayoutChangeListener(layoutChangeListener)
+
+        currentFocusView = focusView
+        currentLayoutChangeListener = layoutChangeListener
     }
 
     private fun assignOriginalTargetRect(item: Spot, focusView: View?) {
@@ -557,10 +578,10 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     class Builder(private val context: Context) {
-        var steps = mutableListOf<Coachmark<View>>()
-        var initialDelay = 0L
-        var animate = true
-        var animationVelocity = 0
+        internal var steps = mutableListOf<Coachmark<View>>()
+        internal var initialDelay = 0L
+        internal var animate = true
+        internal var animationVelocity = 0
 
         fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
             apply { steps.addAll(listSteps as List<Coachmark<View>>) }
