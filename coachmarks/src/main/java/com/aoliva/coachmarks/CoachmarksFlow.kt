@@ -522,15 +522,10 @@ class CoachmarksFlow @JvmOverloads constructor(
     ) {
 
         val screenWidth = getDisplayWidhtPx(context)
-        val margin = dpToPixels(context, 24)
-
         var width = screenWidth
 
         when (item.position) {
-            Coachmark.Position.TOP, Coachmark.Position.BOTTOM -> if (item.alignment == Coachmark.Alignment.CENTER) {
-                width -= margin * 2
-            } else {
-                width -= margin
+            Coachmark.Position.TOP, Coachmark.Position.BOTTOM -> if (item.alignment != Coachmark.Alignment.CENTER) {
                 width -= dpToPixels(context, spotWidth / 2)
 
                 if (item.alignment == Coachmark.Alignment.LEFT) {
@@ -546,7 +541,6 @@ class CoachmarksFlow @JvmOverloads constructor(
                 }
             }
             Coachmark.Position.LEFT, Coachmark.Position.RIGHT -> {
-                width -= margin
                 if (item.position == Coachmark.Position.LEFT) {
                     if (item.deviations[0] > 0) {
                         width -= dpToPixels(context, item.deviations[0])

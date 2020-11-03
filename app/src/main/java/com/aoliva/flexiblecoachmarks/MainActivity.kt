@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
     private fun createFirstFlow() {
         findViewById<View>(R.id.button).setOnClickListener {
             val relatedButton = Button(this)
-            val options1 = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.RIGHT)
+            val options1 = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.RIGHT, intArrayOf(10, -20))
             val coachmark1: Coachmark<Button> = Coachmark.Builder(relatedButton, options1)
                 .withViewId(R.id.button)
                 .sizePercentage(100.0)
