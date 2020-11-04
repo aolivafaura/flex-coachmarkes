@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
                 .steps(listOf(coachmark1, coachmark2, coachmark3, coachmark4))
                 .animationVelocity(CoachmarksFlow.AnimationVelocity.NORMAL)
                 .initialDelay(1000)
+                .allowOverlaidViewsInteractions(true)
 //                .withAnimation(false)
                 .build().let { flow ->
                     flow.coachMarkListener = object : CoachmarksFlow.CoachMarkListener {
