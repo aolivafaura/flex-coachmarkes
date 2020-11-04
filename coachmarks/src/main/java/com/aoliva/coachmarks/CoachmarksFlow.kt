@@ -13,11 +13,13 @@ import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import com.aoliva.coachmarks.extensions.fadeIn
 import com.aoliva.coachmarks.extensions.fadeOut
+import com.aoliva.coachmarks.extensions.statusBarHeight
 import com.aoliva.coachmarks.extensions.toDp
 import com.aoliva.coachmarks.extensions.toPx
 import com.aoliva.coachmarks.spot.CircleSpot
@@ -54,8 +56,7 @@ class CoachmarksFlow @JvmOverloads constructor(
      * Notifies when coachmark view is dismissed
      */
     interface CoachMarkListener {
-
-        fun onCoachmarkFlowDismissed()
+        fun onCoachmarkFlowClosed(closeAction: CoachmarkCloseAction)
         fun onCoachmarkFlowShowed()
         fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
     }
@@ -96,7 +97,7 @@ class CoachmarksFlow @JvmOverloads constructor(
      */
     fun goNextStep() {
         if (!hasNextStep()) {
-            close()
+            removeCoachmarkFlow(CoachmarkCloseAction.FLOW_ENDED)
         } else {
             drawStep(steps!![++currentStep])
         }
@@ -106,11 +107,17 @@ class CoachmarksFlow @JvmOverloads constructor(
      * Close view
      */
     fun close() {
+        removeCoachmarkFlow(CoachmarkCloseAction.DISMISSED)
+    }
+
+    private fun removeCoachmarkFlow(closeAction: CoachmarkCloseAction) {
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
-            ?.removeOnLayoutChangeListener(currentLayoutChangeListener)
+            ?.removeOnLayoutChangeListener(
+                currentLayoutChangeListener
+            )
         fadeOut {
             (parent as ViewGroup).removeView(this)
-            coachMarkListener?.onCoachmarkFlowDismissed()
+            coachMarkListener?.onCoachmarkFlowClosed(closeAction)
         }
     }
 
@@ -134,6 +141,7 @@ class CoachmarksFlow @JvmOverloads constructor(
             visibility = View.INVISIBLE
             coachMarkListener?.onCoachmarkFlowShowed()
             vg.addView(this@CoachmarksFlow)
+            addCloseButton()
             fadeIn(1)
         }, initialDelay)
     }
@@ -152,7 +160,9 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     private fun drawStep(item: Coachmark<View>) {
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
-            ?.removeOnLayoutChangeListener(currentLayoutChangeListener)
+            ?.removeOnLayoutChangeListener(
+                currentLayoutChangeListener
+            )
         removeView(findViewById(relatedViewId))
 
         val focusView: View? =
@@ -165,7 +175,7 @@ class CoachmarksFlow @JvmOverloads constructor(
                 "CUSTOM COACH MARK",
                 "There is no view detected with given Id: " + item.targetId
             )
-            close()
+            removeCoachmarkFlow(CoachmarkCloseAction.DISMISSED)
             return
         }
 
@@ -283,7 +293,7 @@ class CoachmarksFlow @JvmOverloads constructor(
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
-                        close()
+                        removeCoachmarkFlow(CoachmarkCloseAction.OVERLAY)
                     }
                 }
             }
@@ -333,7 +343,7 @@ class CoachmarksFlow @JvmOverloads constructor(
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
-                        close()
+                        removeCoachmarkFlow(CoachmarkCloseAction.OVERLAY)
                     }
                 }
             }
@@ -433,6 +443,23 @@ class CoachmarksFlow @JvmOverloads constructor(
     private fun calculateVelocity(animationVelocity: AnimationVelocity, width: Int): Int {
         val velocity = width.toPx * 8 / animationVelocity.milliseconds
         return if (velocity > 0) velocity.toInt() else 1
+    }
+
+    private fun addCloseButton() {
+        val imageView = ImageView(context).apply {
+            id = View.generateViewId()
+            layoutParams = LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
+                marginEnd = MARGIN_CLOSE_BUTTON.toPx
+                addRule(ALIGN_PARENT_END)
+            }
+            setImageResource(R.drawable.ic_close_white)
+            setOnClickListener { removeCoachmarkFlow(CoachmarkCloseAction.CLOSE_BUTTON) }
+        }
+        addView(imageView)
     }
 
     private fun setConstraints(
@@ -639,8 +666,16 @@ class CoachmarksFlow @JvmOverloads constructor(
         LIGHT_SPEED(50)
     }
 
+    enum class CoachmarkCloseAction {
+        CLOSE_BUTTON,
+        OVERLAY,
+        FLOW_ENDED,
+        DISMISSED
+    }
+
     companion object {
 
         fun with(context: Context): Builder = Builder(context)
+        const val MARGIN_CLOSE_BUTTON = 16
     }
 }

@@ -74,7 +74,11 @@ class Coachmark<T : View> {
     @JvmOverloads
     fun replaceRelatedView(
         newRelatedSpotView: T,
-        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(position, alignment, deviations),
+        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(
+            position,
+            alignment,
+            deviations
+        ),
         animate: Boolean = true
     ) {
         relatedSpotView = newRelatedSpotView
@@ -90,6 +94,7 @@ class Coachmark<T : View> {
         private val relatedSpotView: TYPE,
         relatedViewOptions: RelatedViewOptions = RelatedViewOptions(Position.TOP, Alignment.TOP)
     ) {
+
         private var aligment = Alignment.TOP
         private var position = Position.TOP
         private var shape = Shape.CIRCLE
