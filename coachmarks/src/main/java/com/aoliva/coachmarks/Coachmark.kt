@@ -2,8 +2,7 @@ package com.aoliva.coachmarks
 
 import android.view.View
 import androidx.annotation.IdRes
-import com.aoliva.coachmarks.util.dpToPixels
-import com.aoliva.coachmarks.util.pixelsToDp
+import com.aoliva.coachmarks.extensions.toPx
 
 class Coachmark<T : View> {
 
@@ -82,7 +81,7 @@ class Coachmark<T : View> {
         relatedViewOptions.let {
             alignment = it.alignment
             position = it.position
-            deviations = intArrayOf(dpToPixels(newRelatedSpotView.context, deviations[0]), dpToPixels(newRelatedSpotView.context, deviations[1]))
+            deviations = intArrayOf(deviations[0].toPx, deviations[1].toPx)
         }
         onRelatedSpotViewChanged?.invoke(animate)
     }
@@ -147,8 +146,8 @@ class Coachmark<T : View> {
                     val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
                     deviations = intArrayOf(
-                        dpToPixels(context, this@Builder.deviations[0]),
-                        dpToPixels(context, this@Builder.deviations[1])
+                        this@Builder.deviations[0].toPx,
+                        this@Builder.deviations[1].toPx
                     )
                     cornerRadius = this@Builder.cornerRadius
                 }
@@ -158,8 +157,8 @@ class Coachmark<T : View> {
                     val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
                     deviations = intArrayOf(
-                        dpToPixels(context, this@Builder.deviations[0]),
-                        dpToPixels(context, this@Builder.deviations[1])
+                        this@Builder.deviations[0].toPx,
+                        this@Builder.deviations[1].toPx
                     )
                     cornerRadius = this@Builder.cornerRadius
                 }
