@@ -2,6 +2,7 @@ package com.aoliva.coachmarks
 
 import android.view.View
 import androidx.annotation.IdRes
+import com.aoliva.coachmarks.extensions.toPx
 
 class Coachmark<T : View> {
 
@@ -77,9 +78,10 @@ class Coachmark<T : View> {
         animate: Boolean = true
     ) {
         relatedSpotView = newRelatedSpotView
-        relatedViewOptions?.let {
+        relatedViewOptions.let {
             alignment = it.alignment
             position = it.position
+            deviations = intArrayOf(deviations[0].toPx, deviations[1].toPx)
         }
         onRelatedSpotViewChanged?.invoke(animate)
     }
@@ -141,15 +143,23 @@ class Coachmark<T : View> {
             }
             (targetView != null) -> {
                 Coachmark(targetView!!, relatedSpotView, position, aligment, shape).apply {
+                    val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
-                    deviations = this@Builder.deviations
+                    deviations = intArrayOf(
+                        this@Builder.deviations[0].toPx,
+                        this@Builder.deviations[1].toPx
+                    )
                     cornerRadius = this@Builder.cornerRadius
                 }
             }
             (targetViewId != null) -> {
                 Coachmark(targetViewId!!, relatedSpotView, position, aligment, shape).apply {
+                    val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
-                    deviations = this@Builder.deviations
+                    deviations = intArrayOf(
+                        this@Builder.deviations[0].toPx,
+                        this@Builder.deviations[1].toPx
+                    )
                     cornerRadius = this@Builder.cornerRadius
                 }
             }
@@ -162,7 +172,7 @@ class Coachmark<T : View> {
     /**
      * @param [position] Position about related view
      * @param [alignment] Alignment about position
-     * @param [deviations] First position is the deviation about X axis. Second position is the deviation about Y axis.
+     * @param [deviations] First position is the deviation about X axis in dp. Second position is the deviation about Y axis in dp.
      */
     class RelatedViewOptions @JvmOverloads constructor(
         val position: Position,
