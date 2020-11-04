@@ -25,7 +25,6 @@ import com.aoliva.coachmarks.spot.RectangleSpot
 import com.aoliva.coachmarks.spot.Spot
 import com.aoliva.coachmarks.spot.Spot.Companion.EXPAND
 import com.aoliva.coachmarks.spot.SpotView
-import java.lang.Math.ceil
 
 class CoachmarksFlow @JvmOverloads constructor(
     context: Context,
@@ -46,6 +45,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     private var initialDelay = 200L
     private var animate = true
     private var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
+    private var allowOverlaidViewsInteractions = false
 
     private var currentFocusView: View? = null
     private var currentLayoutChangeListener: OnLayoutChangeListener? = null
@@ -65,6 +65,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         initialDelay = builder.initialDelay
         animate = builder.animate
         animationVelocity = builder.animationVelocity
+        allowOverlaidViewsInteractions = builder.allowOverlaidInteractions
 
         return this
     }
@@ -168,12 +169,6 @@ class CoachmarksFlow @JvmOverloads constructor(
             return
         }
 
-        runJustBeforeBeingDrawn(focusView, Runnable {
-            resumeDrawing(item, focusView)
-        })
-    }
-
-    private fun resumeDrawing(item: Coachmark<View>, focusView: View) {
         val spotWidth = when {
             item.sizePercentage > 0 -> (focusView.width * (item.sizePercentage / 100)).toInt().toDp
             else -> focusView.width.toDp
@@ -234,18 +229,6 @@ class CoachmarksFlow @JvmOverloads constructor(
         }
     }
 
-    private fun runJustBeforeBeingDrawn(view: View, runnable: Runnable) {
-        val preDrawListener: ViewTreeObserver.OnPreDrawListener =
-            object : ViewTreeObserver.OnPreDrawListener {
-                override fun onPreDraw(): Boolean {
-                    view.viewTreeObserver.removeOnPreDrawListener(this)
-                    runnable.run()
-                    return true
-                }
-            }
-        view.viewTreeObserver.addOnPreDrawListener(preDrawListener)
-    }
-
     private fun assignOriginalTargetRect(item: Spot, focusView: View?) {
         val coordinates = IntArray(2)
         focusView!!.getLocationInWindow(coordinates)
@@ -296,6 +279,13 @@ class CoachmarksFlow @JvmOverloads constructor(
         if (spotView == null) {
             spotView = SpotView(context) { state, index ->
                 coachMarkListener?.onChangedCoachMarkState(state, index)
+            }.apply {
+                allowInteractions = allowOverlaidViewsInteractions
+                this.onOverlayInteracted = {
+                    if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
+                        close()
+                    }
+                }
             }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
@@ -339,6 +329,13 @@ class CoachmarksFlow @JvmOverloads constructor(
         if (spotView == null) {
             spotView = SpotView(context) { state, index ->
                 coachMarkListener?.onChangedCoachMarkState(state, index)
+            }.apply {
+                allowInteractions = allowOverlaidViewsInteractions
+                this.onOverlayInteracted = {
+                    if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
+                        close()
+                    }
+                }
             }
             val params = ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
@@ -434,7 +431,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     private fun calculateVelocity(animationVelocity: AnimationVelocity, width: Int): Int {
-        val velocity =  width.toPx * 8 / animationVelocity.milliseconds
+        val velocity = width.toPx * 8 / animationVelocity.milliseconds
         return if (velocity > 0) velocity.toInt() else 1
     }
 
@@ -612,6 +609,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         internal var initialDelay = 0L
         internal var animate = true
         internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
+        internal var allowOverlaidInteractions = false
 
         fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
             apply { steps.addAll(listSteps as List<Coachmark<View>>) }
@@ -623,6 +621,9 @@ class CoachmarksFlow @JvmOverloads constructor(
         fun withAnimation(animate: Boolean) = apply { this.animate = animate }
         fun animationVelocity(animationVelocity: AnimationVelocity) =
             apply { this.animationVelocity = animationVelocity }
+
+        fun allowOverlaidViewsInteractions(allow: Boolean) =
+            apply { this.allowOverlaidInteractions = allow }
 
         fun build() = CoachmarksFlow(context).initView(this)
     }
