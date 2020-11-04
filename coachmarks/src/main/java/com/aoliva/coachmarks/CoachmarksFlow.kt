@@ -25,6 +25,7 @@ import com.aoliva.coachmarks.spot.RectangleSpot
 import com.aoliva.coachmarks.spot.Spot
 import com.aoliva.coachmarks.spot.Spot.Companion.EXPAND
 import com.aoliva.coachmarks.spot.SpotView
+import java.lang.Math.ceil
 
 class CoachmarksFlow @JvmOverloads constructor(
     context: Context,
@@ -44,7 +45,7 @@ class CoachmarksFlow @JvmOverloads constructor(
     var coachMarkListener: CoachMarkListener? = null
     private var initialDelay = 200L
     private var animate = true
-    private var animationVelocity = 8
+    private var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
 
     private var currentFocusView: View? = null
     private var currentLayoutChangeListener: OnLayoutChangeListener? = null
@@ -63,9 +64,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         steps = builder.steps
         initialDelay = builder.initialDelay
         animate = builder.animate
-        if (builder.animate && builder.animationVelocity > 0) {
-            animationVelocity = builder.animationVelocity
-        }
+        animationVelocity = builder.animationVelocity
 
         return this
     }
@@ -317,13 +316,14 @@ class CoachmarksFlow @JvmOverloads constructor(
             bottomCoordinate.toFloat()
         )
 
+        val velocity = calculateVelocity(animationVelocity, width)
         val spot = RectangleSpot(
             rect,
             height.toFloat(),
             width.toFloat(),
             cornerRadius.toFloat(),
             animate,
-            animationVelocity
+            velocity
         )
         spot.direction = EXPAND
 
@@ -357,7 +357,8 @@ class CoachmarksFlow @JvmOverloads constructor(
             bottomCoordinate.toFloat()
         )
 
-        val spot = CircleSpot(rect, radius.toFloat(), animate, animationVelocity)
+        val velocity = calculateVelocity(animationVelocity, radius * 2)
+        val spot = CircleSpot(rect, radius.toFloat(), animate, velocity)
         spot.direction = EXPAND
 
         callListeners()
@@ -430,6 +431,11 @@ class CoachmarksFlow @JvmOverloads constructor(
                 setConstraints(item, contentLayout, anchorPoint)
             }
         })
+    }
+
+    private fun calculateVelocity(animationVelocity: AnimationVelocity, width: Int): Int {
+        val velocity =  width.toPx * 8 / animationVelocity.milliseconds
+        return if (velocity > 0) velocity.toInt() else 1
     }
 
     private fun setConstraints(
@@ -605,7 +611,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         internal var steps = mutableListOf<Coachmark<View>>()
         internal var initialDelay = 0L
         internal var animate = true
-        internal var animationVelocity = 0
+        internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
 
         fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
             apply { steps.addAll(listSteps as List<Coachmark<View>>) }
@@ -615,10 +621,21 @@ class CoachmarksFlow @JvmOverloads constructor(
 
         fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
         fun withAnimation(animate: Boolean) = apply { this.animate = animate }
-        fun animationVelocity(animationVelocity: Int) =
+        fun animationVelocity(animationVelocity: AnimationVelocity) =
             apply { this.animationVelocity = animationVelocity }
 
         fun build() = CoachmarksFlow(context).initView(this)
+    }
+
+
+    enum class AnimationVelocity(val milliseconds: Long) {
+        TURTLE(2000),
+        SLOWEST(1500),
+        SLOW(1000),
+        NORMAL(500),
+        FAST(300),
+        FASTEST(150),
+        LIGHT_SPEED(50)
     }
 
     companion object {
