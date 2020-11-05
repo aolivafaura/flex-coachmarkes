@@ -17,11 +17,7 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import com.aoliva.coachmarks.extensions.fadeIn
-import com.aoliva.coachmarks.extensions.fadeOut
-import com.aoliva.coachmarks.extensions.statusBarHeight
-import com.aoliva.coachmarks.extensions.toDp
-import com.aoliva.coachmarks.extensions.toPx
+import com.aoliva.coachmarks.extensions.*
 import com.aoliva.coachmarks.spot.CircleSpot
 import com.aoliva.coachmarks.spot.RectangleSpot
 import com.aoliva.coachmarks.spot.Spot
@@ -59,6 +55,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         fun onCoachmarkFlowClosed(closeAction: CoachmarkCloseAction)
         fun onCoachmarkFlowShowed()
         fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
+        fun onTargetViewClick(coachMarkIndex: Int)
     }
 
     private fun initView(builder: Builder): CoachmarksFlow {
@@ -287,9 +284,14 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     private fun drawSpot(coordinates: IntArray, height: Int, width: Int, cornerRadius: Int): Spot {
         if (spotView == null) {
-            spotView = SpotView(context) { state, index ->
-                coachMarkListener?.onChangedCoachMarkState(state, index)
-            }.apply {
+            spotView = SpotView(context,
+                { state, index ->
+                    coachMarkListener?.onChangedCoachMarkState(state, index)
+                },
+                { index ->
+                    coachMarkListener?.onTargetViewClick(index)
+                }
+            ).apply {
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
@@ -337,9 +339,14 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     private fun drawSpot(coordinates: IntArray, radius: Int): Spot {
         if (spotView == null) {
-            spotView = SpotView(context) { state, index ->
-                coachMarkListener?.onChangedCoachMarkState(state, index)
-            }.apply {
+            spotView = SpotView(context,
+                { state, index ->
+                    coachMarkListener?.onChangedCoachMarkState(state, index)
+                },
+                { index ->
+                    coachMarkListener?.onTargetViewClick(index)
+                }
+            ).apply {
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {

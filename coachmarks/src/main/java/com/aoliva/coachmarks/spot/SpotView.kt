@@ -33,14 +33,16 @@ internal class SpotView : AppCompatImageView {
     private var currentSpot: Spot? = null
     private var stateListener: (Coachmark.CoachMarkState, Int) -> Unit =
         { _, _ -> }
+    private var targetViewClickListener: ((Int) -> Unit) = {}
 
     internal var onOverlayInteracted: (() -> Unit)? = null
     internal var allowInteractions = false
 
-    constructor(context: Context, stateListener: (Coachmark.CoachMarkState, Int) -> Unit) : super(
+    constructor(context: Context, stateListener: (Coachmark.CoachMarkState, Int) -> Unit, targetViewClickListener: ((Int) -> Unit)) : super(
         context
     ) {
         this.stateListener = stateListener
+        this.targetViewClickListener = targetViewClickListener
     }
 
     constructor(
@@ -150,8 +152,9 @@ internal class SpotView : AppCompatImageView {
                 val isValidEvent =
                     isEventInsideSpot(event) && currentSpot?.state == Spot.SpotState.IDLE
                 if (isValidEvent) {
-                    Log.v(TAG, "Target view click")
-                    // TODO: Listener invoked here
+                    currentSpot?.let {
+                        targetViewClickListener.invoke(spotsIndices[currentSpot] ?: -1)
+                    }
                     event.action != MotionEvent.ACTION_DOWN
                 } else {
                     true
