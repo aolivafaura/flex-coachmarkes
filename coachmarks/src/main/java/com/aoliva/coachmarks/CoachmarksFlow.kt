@@ -12,16 +12,12 @@ import android.util.Log
 import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
+import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import com.aoliva.coachmarks.extensions.fadeIn
-import com.aoliva.coachmarks.extensions.fadeOut
-import com.aoliva.coachmarks.extensions.statusBarHeight
-import com.aoliva.coachmarks.extensions.toDp
-import com.aoliva.coachmarks.extensions.toPx
+import com.aoliva.coachmarks.extensions.*
 import com.aoliva.coachmarks.spot.CircleSpot
 import com.aoliva.coachmarks.spot.RectangleSpot
 import com.aoliva.coachmarks.spot.Spot
@@ -41,7 +37,8 @@ class CoachmarksFlow @JvmOverloads constructor(
         private set
     private var currentStep = 0
 
-    private val relatedViewId = R.id.view_id
+    private var relatedViewId: Int = 0
+    private var currentContentLayoutId: Int = 0
 
     var coachMarkListener: CoachMarkListener? = null
     private var initialDelay = 200L
@@ -59,6 +56,7 @@ class CoachmarksFlow @JvmOverloads constructor(
         fun onCoachmarkFlowClosed(closeAction: CoachmarkCloseAction)
         fun onCoachmarkFlowShowed()
         fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
+        fun onTargetViewClick(coachMarkIndex: Int)
     }
 
     private fun initView(builder: Builder): CoachmarksFlow {
@@ -225,15 +223,17 @@ class CoachmarksFlow @JvmOverloads constructor(
             if (steps!![currentStep] == item) {
                 Log.v(TAG, "Replacing related view...")
                 val currentRelatedView = this@CoachmarksFlow.findViewById<View>(relatedViewId)
+                val innerAnchorPoint = calculateAnchorPoint(center, item, spot)
+                calculateRelatedViewMaxWidth(center, item, spotWidth)
 
                 if (animate) {
                     currentRelatedView.fadeOut {
                         this@CoachmarksFlow.removeView(currentRelatedView)
-                        drawRelatedView(item, anchorPoint, true)
+                        drawRelatedView(item, innerAnchorPoint, true)
                     }
                 } else {
                     this@CoachmarksFlow.removeView(currentRelatedView)
-                    drawRelatedView(item, anchorPoint)
+                    drawRelatedView(item, innerAnchorPoint)
                 }
             }
         }
@@ -287,9 +287,14 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     private fun drawSpot(coordinates: IntArray, height: Int, width: Int, cornerRadius: Int): Spot {
         if (spotView == null) {
-            spotView = SpotView(context) { state, index ->
-                coachMarkListener?.onChangedCoachMarkState(state, index)
-            }.apply {
+            spotView = SpotView(context,
+                { state, index ->
+                    coachMarkListener?.onChangedCoachMarkState(state, index)
+                },
+                { index ->
+                    coachMarkListener?.onTargetViewClick(index)
+                }
+            ).apply {
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
@@ -337,9 +342,14 @@ class CoachmarksFlow @JvmOverloads constructor(
 
     private fun drawSpot(coordinates: IntArray, radius: Int): Spot {
         if (spotView == null) {
-            spotView = SpotView(context) { state, index ->
-                coachMarkListener?.onChangedCoachMarkState(state, index)
-            }.apply {
+            spotView = SpotView(context,
+                { state, index ->
+                    coachMarkListener?.onChangedCoachMarkState(state, index)
+                },
+                { index ->
+                    coachMarkListener?.onTargetViewClick(index)
+                }
+            ).apply {
                 allowInteractions = allowOverlaidViewsInteractions
                 this.onOverlayInteracted = {
                     if (this@CoachmarksFlow.allowOverlaidViewsInteractions) {
@@ -397,7 +407,18 @@ class CoachmarksFlow @JvmOverloads constructor(
         anchorPoint: IntArray,
         animate: Boolean = false
     ) {
-        val contentLayout = ConstraintLayout(context)
+        findViewById<ViewGroup>(currentContentLayoutId)?.let {
+            (it.parent as ViewGroup).removeView(it)
+            it.removeAllViews()
+        }
+
+        val relatedView = item.relatedSpotView
+        requireNotNull(relatedView)
+
+        val contentLayout = ConstraintLayout(context).apply {
+            id = View.generateViewId()
+            currentContentLayoutId = id
+        }
         addView(
             contentLayout, LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -405,15 +426,9 @@ class CoachmarksFlow @JvmOverloads constructor(
             )
         )
 
-        val relatedView = item.relatedSpotView
-        relatedView?.id = relatedViewId
-        relatedView?.visibility = View.INVISIBLE
-
+        relatedView.visibility = View.INVISIBLE
+        assignViewRelatedId(relatedView)
         val maxWidth = item.maxWidth.toPx
-
-        relatedView?.parent?.let {
-            (relatedView.parent as ViewGroup).removeView(relatedView)
-        }
 
         contentLayout.addView(
             relatedView, ConstraintLayout.LayoutParams(
@@ -423,11 +438,11 @@ class CoachmarksFlow @JvmOverloads constructor(
         )
 
         if (animate) {
-            relatedView?.fadeIn()
+            relatedView.fadeIn()
         }
 
-        relatedView?.viewTreeObserver?.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
+        relatedView.viewTreeObserver?.addOnGlobalLayoutListener(object :
+            OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 if (maxWidth > 0 && relatedView.width > maxWidth) {
                     requestLayout()
@@ -438,6 +453,11 @@ class CoachmarksFlow @JvmOverloads constructor(
                 setConstraints(item, contentLayout, anchorPoint)
             }
         })
+    }
+
+    private fun assignViewRelatedId(relatedView: View) {
+        relatedView.id = View.generateViewId()
+        relatedViewId = relatedView.id
     }
 
     private fun calculateVelocity(animationVelocity: AnimationVelocity, width: Int): Int {
@@ -463,7 +483,8 @@ class CoachmarksFlow @JvmOverloads constructor(
     }
 
     private fun setConstraints(
-        item: Coachmark<View>, contentLayout: ConstraintLayout,
+        item: Coachmark<View>,
+        contentLayout: ConstraintLayout,
         anchorPoint: IntArray
     ) {
         val verticalGuideId = R.id.vertical_guide
