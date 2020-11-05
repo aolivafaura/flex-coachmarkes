@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private fun createFirstFlow() {
         findViewById<View>(R.id.button).setOnClickListener {
             val relatedButton = Button(this)
+            val relatedButtonReplace = Button(this).apply { text = "Replace me!" }
             val options1 = Coachmark.RelatedViewOptions(
                 Coachmark.Position.BOTTOM,
                 Coachmark.Alignment.RIGHT,
@@ -42,10 +43,10 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
             val options3 =
-                Coachmark.RelatedViewOptions(Coachmark.Position.RIGHT, Coachmark.Alignment.TOP)
-            val coachmark3: Coachmark<Button> = Coachmark.Builder(relatedButton, options3)
-                .withViewId(R.id.button5)
-                .sizePercentage(200.0)
+                Coachmark.RelatedViewOptions(Coachmark.Position.TOP, Coachmark.Alignment.CENTER)
+            val coachmark3: Coachmark<Button> = Coachmark.Builder(relatedButtonReplace, options3)
+                .withViewId(R.id.button7)
+                .sizePercentage(130.0)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
@@ -61,7 +62,7 @@ class MainActivity : AppCompatActivity() {
                 .steps(listOf(coachmark1, coachmark2, coachmark3, coachmark4))
                 .animationVelocity(CoachmarksFlow.AnimationVelocity.NORMAL)
 //                .initialDelay(1000)
-                .allowOverlaidViewsInteractions(true)
+                .allowOverlaidViewsInteractions(false)
 //                .withAnimation(false)
                 .build().let { flow ->
                     flow.coachMarkListener = object : CoachmarksFlow.CoachMarkListener {
@@ -85,6 +86,10 @@ class MainActivity : AppCompatActivity() {
                                 "Coachmark $coachMarkIndex is $state"
                             )
                         }
+
+                        override fun onTargetViewClick(coachMarkIndex: Int) {
+                            Log.d("FlexibleCoachmarkDemo", "Target view click: $coachMarkIndex")
+                        }
                     }
                     flow.show()
                     flow
@@ -92,6 +97,11 @@ class MainActivity : AppCompatActivity() {
 
             relatedButton.setOnClickListener {
                 coachmarksFlow.goNextStep()
+            }
+
+            relatedButtonReplace.setOnClickListener {
+                val options = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.LEFT)
+                coachmarksFlow.getCurrentStepView()?.replaceRelatedView(relatedButton, options, true)
             }
             relatedButton.text = "Next coachmark"
         }
