@@ -4,7 +4,12 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 
-internal abstract class Spot(val rectF: RectF, val animate: Boolean, val animationVelocity: Int, ) {
+internal abstract class Spot(
+    val rectF: RectF,
+    val animate: Boolean,
+    val animationVelocity: Int,
+    centerCoordinates: IntArray
+) {
 
     internal var state: SpotState = SpotState.ON_ANIMATION
     internal var direction: Int = 0
@@ -15,13 +20,19 @@ internal abstract class Spot(val rectF: RectF, val animate: Boolean, val animati
     internal abstract val width: Float
     internal abstract val height: Float
 
+    internal var centerCoordinates: IntArray
+        private set
+
+    init {
+        this.centerCoordinates = centerCoordinates
+    }
+
     abstract fun draw(
         canvas: Canvas,
         paint: Paint
     ): Boolean
 
-    abstract fun drawIdle(canvas: Canvas,
-                 paint: Paint)
+    abstract fun drawIdle(canvas: Canvas, paint: Paint)
 
     protected fun calculateCurrentRect(): RectF {
         return if (direction == COLLAPSE) {

@@ -11,8 +11,9 @@ internal class RectangleSpot(
     override val width: Float,
     override val rounded: Float,
     animate: Boolean,
-    animationVelocity: Int
-) : Spot(rectF, animate, animationVelocity) {
+    animationVelocity: Int,
+    centerCoordinates: IntArray
+) : Spot(rectF, animate, animationVelocity, centerCoordinates) {
 
     private var pixelsPerFrameX: Int = 0
     private var pixelsPerFrameY: Int = 0

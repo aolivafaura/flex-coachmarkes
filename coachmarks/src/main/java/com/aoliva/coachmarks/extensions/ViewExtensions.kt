@@ -1,5 +1,7 @@
 package com.aoliva.coachmarks.extensions
 
+import android.app.Activity
+import android.content.ContextWrapper
 import android.view.View
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
@@ -43,3 +45,18 @@ internal fun View.fade(duration: Long, fromAlpha: Float, toAlpha: Float, listene
     })
     startAnimation(animation)
 }
+
+internal fun View.getActivity(): Activity? {
+    var localContext = context
+    while (localContext is ContextWrapper) {
+        if (localContext is Activity) {
+            return localContext
+        }
+        localContext = localContext.baseContext
+    }
+    return null
+}
+
+internal fun View.getRealHeight(): Int = height - paddingTop - paddingBottom
+
+internal fun View.getRealWidth(): Int = width - paddingStart - paddingEnd
