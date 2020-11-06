@@ -276,10 +276,10 @@ class CoachmarksFlow @JvmOverloads constructor(
         }
 
         if (item.deviations[0] != 0) {
-            anchorPoint[0] = anchorPoint[0] + item.deviations[0].toPx
+            anchorPoint[0] = anchorPoint[0] + item.deviations[0]
         }
         if (item.deviations[1] != 0) {
-            anchorPoint[1] = anchorPoint[1] + item.deviations[1].toPx
+            anchorPoint[1] = anchorPoint[1] + item.deviations[1]
         }
 
         return anchorPoint

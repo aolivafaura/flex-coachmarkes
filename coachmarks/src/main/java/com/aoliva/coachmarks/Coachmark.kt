@@ -75,17 +75,19 @@ class Coachmark<T : View> {
     fun replaceRelatedView(
         newRelatedSpotView: T,
         relatedViewOptions: RelatedViewOptions = RelatedViewOptions(
-            position,
-            alignment,
-            deviations
+            position = position,
+            alignment = alignment
         ),
         animate: Boolean = true
     ) {
         relatedSpotView = newRelatedSpotView
-        relatedViewOptions.let {
-            alignment = it.alignment
-            position = it.position
-            deviations = intArrayOf(deviations[0].toPx, deviations[1].toPx)
+        relatedViewOptions.let { relatedOptions ->
+            alignment = relatedOptions.alignment
+            position = relatedOptions.position
+            if (relatedOptions.deviations.all { it != 0 }) {
+                deviations =
+                    intArrayOf(relatedOptions.deviations[0].toPx, relatedOptions.deviations[1].toPx)
+            }
         }
         onRelatedSpotViewChanged?.invoke(animate)
     }
@@ -148,7 +150,6 @@ class Coachmark<T : View> {
             }
             (targetView != null) -> {
                 Coachmark(targetView!!, relatedSpotView, position, aligment, shape).apply {
-                    val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
                     deviations = intArrayOf(
                         this@Builder.deviations[0].toPx,
@@ -159,7 +160,6 @@ class Coachmark<T : View> {
             }
             (targetViewId != null) -> {
                 Coachmark(targetViewId!!, relatedSpotView, position, aligment, shape).apply {
-                    val context = relatedSpotView!!.context
                     sizePercentage = this@Builder.sizePercentage
                     deviations = intArrayOf(
                         this@Builder.deviations[0].toPx,
