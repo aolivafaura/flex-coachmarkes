@@ -10,3 +10,7 @@ internal val Int.toDp: Int
 
 internal val Int.toPx: Int
     get() = (this * Resources.getSystem().displayMetrics.density).toInt()
+
+internal fun Int.percentage(percentage: Double): Int {
+    return ((this * percentage) / 100.0).toInt()
+}

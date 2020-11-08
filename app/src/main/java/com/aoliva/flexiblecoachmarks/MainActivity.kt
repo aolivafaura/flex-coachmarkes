@@ -7,7 +7,7 @@ import android.widget.Button
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import com.aoliva.coachmarks.Coachmark
-import com.aoliva.coachmarks.CoachmarksFlow
+import com.aoliva.coachmarks.CoachMarksFlow
 
 
 class MainActivity : AppCompatActivity() {
@@ -30,14 +30,14 @@ class MainActivity : AppCompatActivity() {
             val coachmark1: Coachmark<Button> = Coachmark.Builder(relatedButton, options1)
                 .withViewId(R.id.button)
                 .sizePercentage(100.0)
-                .shape(Coachmark.Shape.CIRCLE)
+                .shape(Coachmark.Shape.RECTANGLE)
                 .build()
 
             val options2 =
                 Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.LEFT)
             val coachmark2: Coachmark<Button> = Coachmark.Builder(relatedButton, options2)
                 .withViewId(R.id.button2)
-                .sizePercentage(150.0)
+                .sizePercentage(100.0)
                 .shape(Coachmark.Shape.RECTANGLE)
                 .cornerRadius(10)
                 .build()
@@ -58,15 +58,15 @@ class MainActivity : AppCompatActivity() {
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
-            val coachmarksFlow = CoachmarksFlow.with(this)
+            val coachmarksFlow = CoachMarksFlow.with(this)
                 .steps(listOf(coachmark1, coachmark2, coachmark3, coachmark4))
-                .animationVelocity(CoachmarksFlow.AnimationVelocity.NORMAL)
+                .animationVelocity(CoachMarksFlow.AnimationVelocity.NORMAL)
 //                .initialDelay(1000)
                 .allowOverlaidViewsInteractions(false)
 //                .withAnimation(false)
                 .build().let { flow ->
-                    flow.coachMarkListener = object : CoachmarksFlow.CoachMarkListener {
-                        override fun onCoachmarkFlowClosed(closeAction: CoachmarksFlow.CoachmarkCloseAction) {
+                    flow.coachMarkListener = object : CoachMarksFlow.CoachMarkListener {
+                        override fun onCoachmarkFlowClosed(closeAction: CoachMarksFlow.CoachmarkCloseAction) {
                             Log.d("FlexibleCoachmarkDemo", "Coachmark dismissed: $closeAction")
                         }
 

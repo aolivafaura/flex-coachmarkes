@@ -8,8 +8,9 @@ internal class CircleSpot(
     rectF: RectF,
     private val radius: Float,
     animate: Boolean,
-    animationVelocity: Int
-) : Spot(rectF, animate, animationVelocity) {
+    animationVelocity: Int,
+    centerCoordinates: IntArray
+) : Spot(rectF, animate, animationVelocity, centerCoordinates) {
 
     override val rounded = radius
     override val width = radius
