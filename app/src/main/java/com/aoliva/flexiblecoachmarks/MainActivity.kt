@@ -4,10 +4,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
-import com.aoliva.coachmarks.Coachmark
 import com.aoliva.coachmarks.CoachMarksFlow
+import com.aoliva.coachmarks.Coachmark
 
 
 class MainActivity : AppCompatActivity() {
@@ -20,22 +21,48 @@ class MainActivity : AppCompatActivity() {
 
     private fun createFirstFlow() {
         findViewById<View>(R.id.button).setOnClickListener {
-            val relatedButton = Button(this)
-            val relatedButtonReplace = Button(this).apply { text = "Replace me!" }
+            val relatedButton = layoutInflater.inflate(R.layout.view_simple_layout, null)
+            val relatedButtonReplace: View = Button(this).apply { text = "Replace me!" }
             val options1 = Coachmark.RelatedViewOptions(
-                Coachmark.Position.BOTTOM,
-                Coachmark.Alignment.RIGHT,
-                intArrayOf(10, -20)
+                listOf(
+                    Coachmark.Connection(
+                        Coachmark.ConnectionEdge.TOP,
+                        Coachmark.AnchorView.TARGET,
+                        Coachmark.ConnectionEdge.BOTTOM,
+                        0
+                    ),
+                    Coachmark.Connection(
+                        Coachmark.ConnectionEdge.START,
+                        Coachmark.AnchorView.TARGET,
+                        Coachmark.ConnectionEdge.END,
+                        0
+                    )
+                )
             )
-            val coachmark1: Coachmark<Button> = Coachmark.Builder(relatedButton, options1)
+            val coachmark1: Coachmark<View> = Coachmark.Builder(relatedButton, options1)
                 .withViewId(R.id.button)
                 .sizePercentage(100.0)
                 .shape(Coachmark.Shape.RECTANGLE)
                 .build()
 
             val options2 =
-                Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.LEFT)
-            val coachmark2: Coachmark<Button> = Coachmark.Builder(relatedButton, options2)
+                Coachmark.RelatedViewOptions(
+                    listOf(
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            0
+                        ),
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.END,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.END,
+                            0
+                        )
+                    )
+                )
+            val coachmark2: Coachmark<View> = Coachmark.Builder(relatedButton, options2)
                 .withViewId(R.id.button2)
                 .sizePercentage(100.0)
                 .shape(Coachmark.Shape.RECTANGLE)
@@ -43,16 +70,46 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
             val options3 =
-                Coachmark.RelatedViewOptions(Coachmark.Position.TOP, Coachmark.Alignment.CENTER)
-            val coachmark3: Coachmark<Button> = Coachmark.Builder(relatedButtonReplace, options3)
+                Coachmark.RelatedViewOptions(
+                    listOf(
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            0
+                        ),
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.END,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.END,
+                            0
+                        )
+                    )
+                )
+            val coachmark3: Coachmark<View> = Coachmark.Builder(relatedButtonReplace, options3)
                 .withViewId(R.id.button7)
                 .sizePercentage(130.0)
                 .shape(Coachmark.Shape.CIRCLE)
                 .build()
 
             val options4 =
-                Coachmark.RelatedViewOptions(Coachmark.Position.LEFT, Coachmark.Alignment.TOP)
-            val coachmark4: Coachmark<Button> = Coachmark.Builder(relatedButton, options4)
+                Coachmark.RelatedViewOptions(
+                    listOf(
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            0
+                        ),
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.END,
+                            Coachmark.AnchorView.PARENT,
+                            Coachmark.ConnectionEdge.END,
+                            0
+                        )
+                    )
+                )
+            val coachmark4: Coachmark<View> = Coachmark.Builder(relatedButton, options4)
                 .withViewId(R.id.button6)
                 .sizePercentage(50.0)
                 .shape(Coachmark.Shape.CIRCLE)
@@ -100,10 +157,32 @@ class MainActivity : AppCompatActivity() {
             }
 
             relatedButtonReplace.setOnClickListener {
-                val options = Coachmark.RelatedViewOptions(Coachmark.Position.BOTTOM, Coachmark.Alignment.LEFT)
-                coachmarksFlow.getCurrentStepView()?.replaceRelatedView(relatedButton, options, true)
+                val options = Coachmark.RelatedViewOptions(
+                    listOf(
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.AnchorView.TARGET,
+                            Coachmark.ConnectionEdge.TOP,
+                            200
+                        ),
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.START,
+                            Coachmark.AnchorView.TARGET,
+                            Coachmark.ConnectionEdge.START,
+                            0
+                        ),
+                        Coachmark.Connection(
+                            Coachmark.ConnectionEdge.END,
+                            Coachmark.AnchorView.TARGET,
+                            Coachmark.ConnectionEdge.END,
+                            0
+                        )
+                    )
+                )
+                coachmarksFlow.getCurrentStepView()
+                    ?.replaceRelatedView(relatedButton, options, true)
             }
-            relatedButton.text = "Next coachmark"
+            relatedButton.findViewById<TextView>(R.id.textView).text = "Next coachmark"
         }
     }
 }

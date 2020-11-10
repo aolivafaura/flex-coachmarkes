@@ -15,55 +15,37 @@ class Coachmark<T : View> {
     @IdRes
     internal var targetId: Int = 0
     internal var target: View? = null
-    internal var position: Position
-    internal var alignment: Alignment
     internal var relatedSpotView: T? = null
     internal var maxWidth = -1
-    internal var deviations = intArrayOf(0, 0)
+    internal var connections: List<Connection>
     internal var shape: Shape = Shape.CIRCLE
     internal var cornerRadius: Int = 0
 
     internal var onRelatedSpotViewChanged: ((Boolean) -> Unit)? = null
 
-    /**
-     * @param targetId        Desired view id to be spotted
-     * @param relatedSpotView View to be shown with the coachmark
-     * @param position        Position of the view respect to the mark
-     * @param alignment       Alignment of the view respect to the position
-     */
-    constructor(
+    private constructor(
         @IdRes targetId: Int,
         relatedSpotView: T,
-        position: Position,
-        alignment: Alignment,
-        type: Shape = Shape.CIRCLE
+        type: Shape = Shape.CIRCLE,
+        connections: List<Connection>
     ) {
         this.targetId = targetId
-        this.position = position
-        this.alignment = alignment
         this.relatedSpotView = relatedSpotView
         this.shape = type
+        this.connections = connections
     }
 
-    /**
-     * @param target          Desired view to be spotted
-     * @param relatedSpotView View to be shown with the coachmark
-     * @param position        Position of the view respect to the mark
-     * @param alignment       Alignment of the view respect to the position
-     */
-    constructor(
+    private constructor(
         target: View,
         relatedSpotView: T,
-        position: Position,
-        alignment: Alignment,
-        type: Shape = Shape.CIRCLE
+        type: Shape = Shape.CIRCLE,
+        connections: List<Connection>
     ) {
 
         this.target = target
-        this.position = position
-        this.alignment = alignment
         this.relatedSpotView = relatedSpotView
         this.shape = type
+        this.connections = connections
     }
 
     /**
@@ -74,44 +56,27 @@ class Coachmark<T : View> {
     @JvmOverloads
     fun replaceRelatedView(
         newRelatedSpotView: T,
-        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(
-            position = position,
-            alignment = alignment
-        ),
+        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(listOf<Connection>()),
         animate: Boolean = true
     ) {
         relatedSpotView = newRelatedSpotView
         relatedViewOptions.let { relatedOptions ->
-            alignment = relatedOptions.alignment
-            position = relatedOptions.position
-            if (relatedOptions.deviations.all { it != 0 }) {
-                deviations =
-                    intArrayOf(relatedOptions.deviations[0].toPx, relatedOptions.deviations[1].toPx)
-            }
+            this.connections = relatedOptions.connections
         }
         onRelatedSpotViewChanged?.invoke(animate)
     }
 
     class Builder<TYPE : View> @JvmOverloads constructor(
         private val relatedSpotView: TYPE,
-        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(Position.TOP, Alignment.TOP)
+        private val relatedViewOptions: RelatedViewOptions = RelatedViewOptions(emptyList())
     ) {
 
-        private var aligment = Alignment.TOP
-        private var position = Position.TOP
         private var shape = Shape.CIRCLE
         private var sizePercentage: Double = 100.0
-        private var deviations = intArrayOf(0, 0)
         private var cornerRadius = 0
 
         private var targetView: View? = null
         private var targetViewId: Int? = null
-
-        init {
-            aligment = relatedViewOptions.alignment
-            position = relatedViewOptions.position
-            deviations = relatedViewOptions.deviations
-        }
 
         /**
          * @param [targetView] The view to be highlighted
@@ -149,22 +114,24 @@ class Coachmark<T : View> {
                 throw RuntimeException("Call only one of these methods \"withView\" or \"withViewId\"")
             }
             (targetView != null) -> {
-                Coachmark(targetView!!, relatedSpotView, position, aligment, shape).apply {
+                Coachmark(
+                    targetView!!,
+                    relatedSpotView,
+                    shape,
+                    relatedViewOptions.connections
+                ).apply {
                     sizePercentage = this@Builder.sizePercentage
-                    deviations = intArrayOf(
-                        this@Builder.deviations[0].toPx,
-                        this@Builder.deviations[1].toPx
-                    )
                     cornerRadius = this@Builder.cornerRadius
                 }
             }
             (targetViewId != null) -> {
-                Coachmark(targetViewId!!, relatedSpotView, position, aligment, shape).apply {
+                Coachmark(
+                    targetViewId!!,
+                    relatedSpotView,
+                    shape,
+                    relatedViewOptions.connections
+                ).apply {
                     sizePercentage = this@Builder.sizePercentage
-                    deviations = intArrayOf(
-                        this@Builder.deviations[0].toPx,
-                        this@Builder.deviations[1].toPx
-                    )
                     cornerRadius = this@Builder.cornerRadius
                 }
             }
@@ -174,16 +141,22 @@ class Coachmark<T : View> {
         }
     }
 
-    /**
-     * @param [position] Position about related view
-     * @param [alignment] Alignment about position
-     * @param [deviations] First position is the deviation about X axis in dp. Second position is the deviation about Y axis in dp.
-     */
-    class RelatedViewOptions @JvmOverloads constructor(
-        val position: Position,
-        val alignment: Alignment,
-        val deviations: IntArray = intArrayOf(0, 0)
+    data class RelatedViewOptions(val connections: List<Connection>)
+
+    data class Connection(
+        val relatedViewConnection: ConnectionEdge,
+        val anchorView: AnchorView,
+        val anchorViewConnection: ConnectionEdge,
+        val margin: Int
     )
+
+    enum class ConnectionEdge {
+        TOP, BOTTOM, START, END
+    }
+
+    enum class AnchorView {
+        PARENT, TARGET
+    }
 
     enum class CoachMarkState {
         OPENING,
