@@ -54,19 +54,19 @@ class Coachmark {
     @JvmOverloads
     fun replaceRelatedView(
         newRelatedSpotView: View,
-        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(listOf<Connection>()),
+        relatedViewOptions: RelatedViewOptions = RelatedViewOptions(),
         animate: Boolean = true
     ) {
         relatedSpotView = newRelatedSpotView
         relatedViewOptions.let { relatedOptions ->
-            this.connections = relatedOptions.connections
+            this.connections = relatedOptions.connections.toList()
         }
         onRelatedSpotViewChanged?.invoke(animate)
     }
 
     class Builder<TYPE : View> @JvmOverloads constructor(
         private val relatedSpotView: TYPE,
-        private val relatedViewOptions: RelatedViewOptions = RelatedViewOptions(emptyList())
+        private val relatedViewOptions: RelatedViewOptions = RelatedViewOptions()
     ) {
 
         private var shape = Shape.CIRCLE
@@ -116,7 +116,7 @@ class Coachmark {
                     targetView!!,
                     relatedSpotView,
                     shape,
-                    relatedViewOptions.connections
+                    relatedViewOptions.connections.toList()
                 ).apply {
                     sizePercentage = this@Builder.sizePercentage
                     cornerRadius = this@Builder.cornerRadius
@@ -127,7 +127,7 @@ class Coachmark {
                     targetViewId!!,
                     relatedSpotView,
                     shape,
-                    relatedViewOptions.connections
+                    relatedViewOptions.connections.toList()
                 ).apply {
                     sizePercentage = this@Builder.sizePercentage
                     cornerRadius = this@Builder.cornerRadius
@@ -139,7 +139,7 @@ class Coachmark {
         }
     }
 
-    data class RelatedViewOptions(val connections: List<Connection>)
+    class RelatedViewOptions(vararg val connections: Connection)
 
     data class Connection(
         val relatedViewConnection: ConnectionSide,
