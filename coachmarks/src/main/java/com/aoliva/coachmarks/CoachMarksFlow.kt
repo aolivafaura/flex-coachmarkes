@@ -1,6 +1,7 @@
 package com.aoliva.coachmarks
 
 import android.content.Context
+import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
@@ -12,10 +13,14 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.content.ContextCompat
+import androidx.core.text.TextUtilsCompat
+import androidx.core.view.ViewCompat
 import com.aoliva.coachmarks.extensions.*
 import com.aoliva.coachmarks.spot.Spot
 import com.aoliva.coachmarks.spot.SpotGenerator
 import com.aoliva.coachmarks.spot.SpotView
+import kotlin.properties.Delegates
 
 class CoachMarksFlow @JvmOverloads constructor(
     context: Context,
@@ -42,6 +47,8 @@ class CoachMarksFlow @JvmOverloads constructor(
     private var currentFocusView: View? = null
     private var currentLayoutChangeListener: OnLayoutChangeListener? = null
 
+    private var isRtl by Delegates.notNull<Boolean>()
+
     /**
      * Notifies when coachmark view is dismissed
      */
@@ -58,9 +65,14 @@ class CoachMarksFlow @JvmOverloads constructor(
         animate = builder.animate
         animationVelocity = builder.animationVelocity
         allowOverlaidViewsInteractions = builder.allowOverlaidInteractions
+        isRtl =
+            getActivity()?.window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
+                context.resources.configuration.locale
+            ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
 
         return this
     }
+
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -86,6 +98,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     /**
      * Advance to next step
      */
+
     fun goNextStep() {
         if (!hasNextStep()) {
             removeCoachMarkFlow(CoachmarkCloseAction.FLOW_ENDED)
@@ -138,6 +151,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     // PRIVATE METHODS -----------------------------------------------------------------------------
+
     private fun drawStep(item: Coachmark) {
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
             ?.removeOnLayoutChangeListener(
@@ -224,6 +238,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             addView(spotView, params)
         }
     }
+
 
     private fun initSequence(spot: Spot) {
         callListeners()
@@ -340,6 +355,11 @@ class CoachMarksFlow @JvmOverloads constructor(
         val constraintSet = ConstraintSet()
         constraintSet.clone(contentLayout)
 
+        val xMargin = if (isRtl) {
+            (Resources.getSystem().displayMetrics.widthPixels - coordinates[0] - spot.width * 2).toInt() + (wDifference / 2)
+        } else {
+            coordinates[0] - (wDifference / 2)
+        }
         constraintSet.connect(
             view.id,
             ConstraintSet.TOP,
@@ -352,7 +372,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             ConstraintSet.START,
             ConstraintSet.PARENT_ID,
             ConstraintSet.START,
-            coordinates[0] - (wDifference / 2)
+            xMargin
         )
 
         for (connection in item.connections) {
@@ -386,28 +406,43 @@ class CoachMarksFlow @JvmOverloads constructor(
                 constraintSet.create(id, guideType)
                 val thePoint = when (connection.anchorViewConnection) {
                     Coachmark.ConnectionSide.TOP -> {
-                        coordinates[1] - (hDifference / 2) + connection.margin
+                        coordinates[1] - (hDifference / 2) + connection.margin.toPx
                     }
                     Coachmark.ConnectionSide.BOTTOM -> {
-                        coordinates[1] + spot.height.toInt() + connection.margin
+                        coordinates[1] - (hDifference / 2) + (spot.height.toInt() * 2) + connection.margin.toPx
                     }
                     Coachmark.ConnectionSide.START -> {
-                        coordinates[0] - (wDifference / 2) + connection.margin
+                        if (isRtl.not()) {
+                            coordinates[0] - (wDifference / 2) + connection.margin.toPx
+                        } else {
+                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx + spot.width.toInt() * 2
+                        }
                     }
                     Coachmark.ConnectionSide.END -> {
-                        coordinates[0] + spot.width.toInt() + connection.margin
+                        if (isRtl.not()) {
+                            coordinates[0] - (wDifference / 2) + (spot.width.toInt() * 2) + connection.margin.toPx
+                        } else {
+                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx
+                        }
                     }
                 }
-                constraintSet.setGuidelineBegin(id, thePoint)
+
+                val finalPoint =
+                    if (isRtl.not() || connection.anchorViewConnection == Coachmark.ConnectionSide.TOP || connection.anchorViewConnection == Coachmark.ConnectionSide.BOTTOM) {
+                        thePoint
+                    } else {
+                        Resources.getSystem().displayMetrics.widthPixels - thePoint
+                    }
+                constraintSet.setGuidelineBegin(id, finalPoint)
                 constraintSet.applyTo(contentLayout)
                 constraintSet.connect(relatedViewId, startSide, id, endSide, 0)
             } else {
                 constraintSet.connect(
                     relatedViewId,
                     startSide,
-                    targetId,
+                    view.id,
                     endSide,
-                    connection.margin
+                    0
                 )
             }
         }
@@ -423,6 +458,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         internal var animate = true
         internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
         internal var allowOverlaidInteractions = false
+        internal var forceRtl = false
 
         fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
         fun nextStep(step: Coachmark) = apply { steps.add(step) }
@@ -433,6 +469,8 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         fun allowOverlaidViewsInteractions(allow: Boolean) =
             apply { this.allowOverlaidInteractions = allow }
+
+        fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
 
         fun build() = CoachMarksFlow(context).initView(this)
     }

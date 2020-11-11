@@ -1,5 +1,7 @@
 package com.aoliva.flexiblecoachmarks
 
+import android.annotation.TargetApi
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -15,6 +17,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(@Nullable savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
         setContentView(R.layout.activity_main)
         createFirstFlow()
     }
@@ -28,19 +31,19 @@ class MainActivity : AppCompatActivity() {
                     Coachmark.ConnectionSide.TOP,
                     Coachmark.AnchorView.TARGET,
                     Coachmark.ConnectionSide.BOTTOM,
-                    0
+                    2
                 ),
                 Coachmark.Connection(
-                    Coachmark.ConnectionSide.START,
+                    Coachmark.ConnectionSide.END,
                     Coachmark.AnchorView.TARGET,
                     Coachmark.ConnectionSide.END,
-                    0
+                    1
                 )
 
             )
             val coachmark1: Coachmark = Coachmark.Builder(relatedButton, options1)
-                .withViewId(R.id.button)
-                .sizePercentage(100.0)
+                .withViewId(R.id.button8)
+                .sizePercentage(120.0)
                 .shape(Coachmark.Shape.RECTANGLE)
                 .build()
 
@@ -109,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
             val coachmarksFlow = CoachMarksFlow.with(this)
-                .steps(listOf(coachmark1, coachmark2, coachmark3, coachmark4))
+                .steps(listOf(coachmark1, coachmark4))
                 .animationVelocity(CoachMarksFlow.AnimationVelocity.NORMAL)
 //                .initialDelay(1000)
                 .allowOverlaidViewsInteractions(false)
@@ -154,17 +157,17 @@ class MainActivity : AppCompatActivity() {
                     Coachmark.Connection(
                         Coachmark.ConnectionSide.BOTTOM,
                         Coachmark.AnchorView.TARGET,
-                        Coachmark.ConnectionSide.TOP,
-                        200
-                    ),
-                    Coachmark.Connection(
-                        Coachmark.ConnectionSide.START,
-                        Coachmark.AnchorView.TARGET,
-                        Coachmark.ConnectionSide.START,
+                        Coachmark.ConnectionSide.BOTTOM,
                         0
                     ),
                     Coachmark.Connection(
-                        Coachmark.ConnectionSide.END,
+                        Coachmark.ConnectionSide.TOP,
+                        Coachmark.AnchorView.TARGET,
+                        Coachmark.ConnectionSide.TOP,
+                        0
+                    ),
+                    Coachmark.Connection(
+                        Coachmark.ConnectionSide.START,
                         Coachmark.AnchorView.TARGET,
                         Coachmark.ConnectionSide.END,
                         0
