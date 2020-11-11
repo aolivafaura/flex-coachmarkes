@@ -2,9 +2,8 @@ package com.aoliva.coachmarks
 
 import android.view.View
 import androidx.annotation.IdRes
-import com.aoliva.coachmarks.extensions.toPx
 
-class Coachmark<T : View> {
+class Coachmark {
 
     // ---------------------------------------------------------------------------------------------
     // VARIABLES
@@ -15,8 +14,7 @@ class Coachmark<T : View> {
     @IdRes
     internal var targetId: Int = 0
     internal var target: View? = null
-    internal var relatedSpotView: T? = null
-    internal var maxWidth = -1
+    internal var relatedSpotView: View? = null
     internal var connections: List<Connection>
     internal var shape: Shape = Shape.CIRCLE
     internal var cornerRadius: Int = 0
@@ -25,7 +23,7 @@ class Coachmark<T : View> {
 
     private constructor(
         @IdRes targetId: Int,
-        relatedSpotView: T,
+        relatedSpotView: View,
         type: Shape = Shape.CIRCLE,
         connections: List<Connection>
     ) {
@@ -37,7 +35,7 @@ class Coachmark<T : View> {
 
     private constructor(
         target: View,
-        relatedSpotView: T,
+        relatedSpotView: View,
         type: Shape = Shape.CIRCLE,
         connections: List<Connection>
     ) {
@@ -55,7 +53,7 @@ class Coachmark<T : View> {
      */
     @JvmOverloads
     fun replaceRelatedView(
-        newRelatedSpotView: T,
+        newRelatedSpotView: View,
         relatedViewOptions: RelatedViewOptions = RelatedViewOptions(listOf<Connection>()),
         animate: Boolean = true
     ) {
@@ -109,7 +107,7 @@ class Coachmark<T : View> {
          */
         fun cornerRadius(cornerRadius: Int) = apply { this.cornerRadius = cornerRadius }
 
-        fun build(): Coachmark<TYPE> = when {
+        fun build(): Coachmark = when {
             (targetView != null && targetViewId != null) -> {
                 throw RuntimeException("Call only one of these methods \"withView\" or \"withViewId\"")
             }
@@ -144,13 +142,13 @@ class Coachmark<T : View> {
     data class RelatedViewOptions(val connections: List<Connection>)
 
     data class Connection(
-        val relatedViewConnection: ConnectionEdge,
+        val relatedViewConnection: ConnectionSide,
         val anchorView: AnchorView,
-        val anchorViewConnection: ConnectionEdge,
+        val anchorViewConnection: ConnectionSide,
         val margin: Int
     )
 
-    enum class ConnectionEdge {
+    enum class ConnectionSide {
         TOP, BOTTOM, START, END
     }
 
@@ -167,55 +165,5 @@ class Coachmark<T : View> {
 
     enum class Shape {
         CIRCLE, RECTANGLE
-    }
-
-    enum class Position {
-        /**
-         * Indicates that related view will be aligned on the top of spot
-         */
-        TOP,
-
-        /**
-         * Indicates that related view will be aligned on the bottom of spot
-         */
-        BOTTOM,
-
-        /**
-         * Indicates that related view will be aligned on the left side of spot
-         */
-        LEFT,
-
-        /**
-         * Indicates that related view will be aligned on the right side of spot
-         */
-        RIGHT
-    }
-
-    enum class Alignment {
-        /**
-         * Indicates that related view will have its top aligned with the spot position chosen
-         */
-        TOP,
-
-        /**
-         * Indicates that related view will have its bottom aligned with the spot position chosen
-         */
-        BOTTOM,
-
-        /**
-         * Indicates that related view will have its left side aligned with the spot position chosen
-         */
-        LEFT,
-
-        /**
-         * Indicates that related view will have its right side aligned with the spot position chosen
-         */
-        RIGHT,
-
-        /**
-         * Indicates that related view will have its center aligned with the spot position chosen
-         */
-        CENTER,
-
     }
 }

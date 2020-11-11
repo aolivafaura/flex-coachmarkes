@@ -26,20 +26,20 @@ class MainActivity : AppCompatActivity() {
             val options1 = Coachmark.RelatedViewOptions(
                 listOf(
                     Coachmark.Connection(
-                        Coachmark.ConnectionEdge.TOP,
+                        Coachmark.ConnectionSide.TOP,
                         Coachmark.AnchorView.TARGET,
-                        Coachmark.ConnectionEdge.BOTTOM,
+                        Coachmark.ConnectionSide.BOTTOM,
                         0
                     ),
                     Coachmark.Connection(
-                        Coachmark.ConnectionEdge.START,
+                        Coachmark.ConnectionSide.START,
                         Coachmark.AnchorView.TARGET,
-                        Coachmark.ConnectionEdge.END,
+                        Coachmark.ConnectionSide.END,
                         0
                     )
                 )
             )
-            val coachmark1: Coachmark<View> = Coachmark.Builder(relatedButton, options1)
+            val coachmark1: Coachmark = Coachmark.Builder(relatedButton, options1)
                 .withViewId(R.id.button)
                 .sizePercentage(100.0)
                 .shape(Coachmark.Shape.RECTANGLE)
@@ -49,20 +49,20 @@ class MainActivity : AppCompatActivity() {
                 Coachmark.RelatedViewOptions(
                     listOf(
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             0
                         ),
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             0
                         )
                     )
                 )
-            val coachmark2: Coachmark<View> = Coachmark.Builder(relatedButton, options2)
+            val coachmark2: Coachmark = Coachmark.Builder(relatedButton, options2)
                 .withViewId(R.id.button2)
                 .sizePercentage(100.0)
                 .shape(Coachmark.Shape.RECTANGLE)
@@ -73,20 +73,20 @@ class MainActivity : AppCompatActivity() {
                 Coachmark.RelatedViewOptions(
                     listOf(
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             0
                         ),
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             0
                         )
                     )
                 )
-            val coachmark3: Coachmark<View> = Coachmark.Builder(relatedButtonReplace, options3)
+            val coachmark3: Coachmark = Coachmark.Builder(relatedButtonReplace, options3)
                 .withViewId(R.id.button7)
                 .sizePercentage(130.0)
                 .shape(Coachmark.Shape.CIRCLE)
@@ -96,20 +96,20 @@ class MainActivity : AppCompatActivity() {
                 Coachmark.RelatedViewOptions(
                     listOf(
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             0
                         ),
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             Coachmark.AnchorView.PARENT,
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             0
                         )
                     )
                 )
-            val coachmark4: Coachmark<View> = Coachmark.Builder(relatedButton, options4)
+            val coachmark4: Coachmark = Coachmark.Builder(relatedButton, options4)
                 .withViewId(R.id.button6)
                 .sizePercentage(50.0)
                 .shape(Coachmark.Shape.CIRCLE)
@@ -160,21 +160,21 @@ class MainActivity : AppCompatActivity() {
                 val options = Coachmark.RelatedViewOptions(
                     listOf(
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.BOTTOM,
+                            Coachmark.ConnectionSide.BOTTOM,
                             Coachmark.AnchorView.TARGET,
-                            Coachmark.ConnectionEdge.TOP,
+                            Coachmark.ConnectionSide.TOP,
                             200
                         ),
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.START,
+                            Coachmark.ConnectionSide.START,
                             Coachmark.AnchorView.TARGET,
-                            Coachmark.ConnectionEdge.START,
+                            Coachmark.ConnectionSide.START,
                             0
                         ),
                         Coachmark.Connection(
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             Coachmark.AnchorView.TARGET,
-                            Coachmark.ConnectionEdge.END,
+                            Coachmark.ConnectionSide.END,
                             0
                         )
                     )

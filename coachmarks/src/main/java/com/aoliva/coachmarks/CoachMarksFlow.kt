@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -27,7 +26,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
 
-    var steps: List<Coachmark<View>>? = null
+    var steps: List<Coachmark>? = null
         private set
     private var currentStep = 0
 
@@ -68,7 +67,7 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         Log.v(TAG, "Attached to window")
         steps?.let {
-            drawStep(steps!![currentStep])
+            drawStep(it[currentStep])
         } ?: Log.v(TAG, "Please set desired steps before invoke show method")
     }
 
@@ -91,7 +90,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         if (!hasNextStep()) {
             removeCoachMarkFlow(CoachmarkCloseAction.FLOW_ENDED)
         } else {
-            drawStep(steps!![++currentStep])
+            drawStep(steps?.get(++currentStep) ?: throw RuntimeException("No more steps"))
         }
     }
 
@@ -113,9 +112,9 @@ class CoachMarksFlow @JvmOverloads constructor(
         }
     }
 
-    fun getCurrentStepView(): Coachmark<View>? {
+    fun getCurrentStepView(): Coachmark? {
         return steps?.let {
-            steps!![currentStep]
+            it[currentStep]
         } ?: run {
             Log.v(TAG, "There is no steps defined")
             null
@@ -139,7 +138,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     // PRIVATE METHODS -----------------------------------------------------------------------------
-    private fun drawStep(item: Coachmark<View>) {
+    private fun drawStep(item: Coachmark) {
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
             ?.removeOnLayoutChangeListener(
                 currentLayoutChangeListener
@@ -225,7 +224,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             addView(spotView, params)
         }
     }
-    
+
     private fun initSequence(spot: Spot) {
         callListeners()
         spotView?.removeLastSpot()
@@ -250,7 +249,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     private fun drawRelatedView(
-        item: Coachmark<View>,
+        item: Coachmark,
         spot: Spot,
         focusView: View,
         animate: Boolean = false
@@ -288,18 +287,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             relatedView.fadeIn()
         }
 
-        relatedView.viewTreeObserver?.addOnGlobalLayoutListener(object :
-            OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                if (item.maxWidth > 0 && relatedView.width > item.maxWidth) {
-                    requestLayout()
-                    relatedView.layoutParams.width = item.maxWidth
-                }
-
-                relatedView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                setRelatedViewConstraints(item, contentLayout, spot, focusView)
-            }
-        })
+        setRelatedViewConstraints(item, contentLayout, spot, focusView)
     }
 
     private fun assignViewRelatedId(relatedView: View) {
@@ -325,7 +313,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     private fun setRelatedViewConstraints(
-        item: Coachmark<View>,
+        item: Coachmark,
         contentLayout: ConstraintLayout,
         spot: Spot,
         focusView: View
@@ -369,26 +357,26 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         for (connection in item.connections) {
             val startSide = when (connection.relatedViewConnection) {
-                Coachmark.ConnectionEdge.TOP -> ConstraintSet.TOP
-                Coachmark.ConnectionEdge.BOTTOM -> ConstraintSet.BOTTOM
-                Coachmark.ConnectionEdge.START -> ConstraintSet.START
-                Coachmark.ConnectionEdge.END -> ConstraintSet.END
+                Coachmark.ConnectionSide.TOP -> ConstraintSet.TOP
+                Coachmark.ConnectionSide.BOTTOM -> ConstraintSet.BOTTOM
+                Coachmark.ConnectionSide.START -> ConstraintSet.START
+                Coachmark.ConnectionSide.END -> ConstraintSet.END
             }
             val targetId = when (connection.anchorView) {
                 Coachmark.AnchorView.PARENT -> ConstraintSet.PARENT_ID
                 Coachmark.AnchorView.TARGET -> view.id
             }
             val endSide = when (connection.anchorViewConnection) {
-                Coachmark.ConnectionEdge.TOP -> ConstraintSet.TOP
-                Coachmark.ConnectionEdge.BOTTOM -> ConstraintSet.BOTTOM
-                Coachmark.ConnectionEdge.START -> ConstraintSet.START
-                Coachmark.ConnectionEdge.END -> ConstraintSet.END
+                Coachmark.ConnectionSide.TOP -> ConstraintSet.TOP
+                Coachmark.ConnectionSide.BOTTOM -> ConstraintSet.BOTTOM
+                Coachmark.ConnectionSide.START -> ConstraintSet.START
+                Coachmark.ConnectionSide.END -> ConstraintSet.END
             }
 
             if (connection.margin != 0 && targetId != ConstraintSet.PARENT_ID) {
                 val id = View.generateViewId()
                 val guideType = when (connection.anchorViewConnection) {
-                    Coachmark.ConnectionEdge.TOP, Coachmark.ConnectionEdge.BOTTOM -> {
+                    Coachmark.ConnectionSide.TOP, Coachmark.ConnectionSide.BOTTOM -> {
                         ConstraintSet.HORIZONTAL_GUIDELINE
                     }
                     else -> {
@@ -397,16 +385,16 @@ class CoachMarksFlow @JvmOverloads constructor(
                 }
                 constraintSet.create(id, guideType)
                 val thePoint = when (connection.anchorViewConnection) {
-                    Coachmark.ConnectionEdge.TOP -> {
+                    Coachmark.ConnectionSide.TOP -> {
                         coordinates[1] - (hDifference / 2) + connection.margin
                     }
-                    Coachmark.ConnectionEdge.BOTTOM -> {
+                    Coachmark.ConnectionSide.BOTTOM -> {
                         coordinates[1] + spot.height.toInt() + connection.margin
                     }
-                    Coachmark.ConnectionEdge.START -> {
+                    Coachmark.ConnectionSide.START -> {
                         coordinates[0] - (wDifference / 2) + connection.margin
                     }
-                    Coachmark.ConnectionEdge.END -> {
+                    Coachmark.ConnectionSide.END -> {
                         coordinates[0] + spot.width.toInt() + connection.margin
                     }
                 }
@@ -430,18 +418,14 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     class Builder(private val context: Context) {
 
-        internal var steps = mutableListOf<Coachmark<View>>()
+        internal var steps = mutableListOf<Coachmark>()
         internal var initialDelay = 0L
         internal var animate = true
         internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
         internal var allowOverlaidInteractions = false
 
-        fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
-            apply { steps.addAll(listSteps as List<Coachmark<View>>) }
-
-        fun <TYPE : View> nextStep(step: Coachmark<TYPE>) =
-            apply { steps.add(step as Coachmark<View>) }
-
+        fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
+        fun nextStep(step: Coachmark) = apply { steps.add(step) }
         fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
         fun withAnimation(animate: Boolean) = apply { this.animate = animate }
         fun animationVelocity(animationVelocity: AnimationVelocity) =
