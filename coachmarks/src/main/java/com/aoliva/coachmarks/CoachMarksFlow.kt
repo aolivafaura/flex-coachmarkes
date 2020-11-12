@@ -9,15 +9,18 @@ import android.util.Log
 import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.content.ContextCompat
+import androidx.core.text.TextUtilsCompat
+import androidx.core.view.ViewCompat
 import com.aoliva.coachmarks.extensions.*
 import com.aoliva.coachmarks.spot.Spot
 import com.aoliva.coachmarks.spot.SpotGenerator
 import com.aoliva.coachmarks.spot.SpotView
+import kotlin.properties.Delegates
 
 class CoachMarksFlow @JvmOverloads constructor(
     context: Context,
@@ -28,7 +31,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
 
-    var steps: List<Coachmark<View>>? = null
+    var steps: List<Coachmark>? = null
         private set
     private var currentStep = 0
 
@@ -43,6 +46,8 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     private var currentFocusView: View? = null
     private var currentLayoutChangeListener: OnLayoutChangeListener? = null
+
+    private var isRtl by Delegates.notNull<Boolean>()
 
     /**
      * Notifies when coachmark view is dismissed
@@ -60,16 +65,21 @@ class CoachMarksFlow @JvmOverloads constructor(
         animate = builder.animate
         animationVelocity = builder.animationVelocity
         allowOverlaidViewsInteractions = builder.allowOverlaidInteractions
+        isRtl =
+            getActivity()?.window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
+                context.resources.configuration.locale
+            ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
 
         return this
     }
+
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
         Log.v(TAG, "Attached to window")
         steps?.let {
-            drawStep(steps!![currentStep])
+            drawStep(it[currentStep])
         } ?: Log.v(TAG, "Please set desired steps before invoke show method")
     }
 
@@ -88,11 +98,12 @@ class CoachMarksFlow @JvmOverloads constructor(
     /**
      * Advance to next step
      */
+
     fun goNextStep() {
         if (!hasNextStep()) {
             removeCoachMarkFlow(CoachmarkCloseAction.FLOW_ENDED)
         } else {
-            drawStep(steps!![++currentStep])
+            drawStep(steps?.get(++currentStep) ?: throw RuntimeException("No more steps"))
         }
     }
 
@@ -114,9 +125,9 @@ class CoachMarksFlow @JvmOverloads constructor(
         }
     }
 
-    fun getCurrentStepView(): Coachmark<View>? {
+    fun getCurrentStepView(): Coachmark? {
         return steps?.let {
-            steps!![currentStep]
+            it[currentStep]
         } ?: run {
             Log.v(TAG, "There is no steps defined")
             null
@@ -140,7 +151,8 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     // PRIVATE METHODS -----------------------------------------------------------------------------
-    private fun drawStep(item: Coachmark<View>) {
+
+    private fun drawStep(item: Coachmark) {
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
             ?.removeOnLayoutChangeListener(
                 currentLayoutChangeListener
@@ -165,9 +177,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         val spot = SpotGenerator.getSpot(item, focusView, animate, animationVelocity)
         initSequence(spot)
 
-        val anchorPoint = calculateAnchorPoint(spot.centerCoordinates, item, spot)
-        calculateRelatedViewMaxWidth(spot.centerCoordinates, item, spot.width.toInt())
-        drawRelatedView(item, anchorPoint)
+        drawRelatedView(item, spot, focusView)
 
         val layoutChangeListener =
             OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
@@ -190,44 +200,18 @@ class CoachMarksFlow @JvmOverloads constructor(
             if (steps!![currentStep] == item) {
                 Log.v(TAG, "Replacing related view...")
                 val currentRelatedView = this@CoachMarksFlow.findViewById<View>(relatedViewId)
-                val innerAnchorPoint = calculateAnchorPoint(spot.centerCoordinates, item, spot)
-                calculateRelatedViewMaxWidth(spot.centerCoordinates, item, spot.width.toInt())
 
                 if (animate) {
                     currentRelatedView.fadeOut {
                         this@CoachMarksFlow.removeView(currentRelatedView)
-                        drawRelatedView(item, innerAnchorPoint, true)
+                        drawRelatedView(item, spot, focusView, true)
                     }
                 } else {
                     this@CoachMarksFlow.removeView(currentRelatedView)
-                    drawRelatedView(item, innerAnchorPoint)
+                    drawRelatedView(item, spot, focusView)
                 }
             }
         }
-    }
-
-    private fun calculateAnchorPoint(
-        center: IntArray,
-        item: Coachmark<View>,
-        spot: Spot
-    ): IntArray {
-        val anchorPoint = intArrayOf(center[0], center[1])
-
-        when (item.position) {
-            Coachmark.Position.BOTTOM -> anchorPoint[1] = anchorPoint[1] + spot.height.toInt()
-            Coachmark.Position.TOP -> anchorPoint[1] = anchorPoint[1] - spot.height.toInt()
-            Coachmark.Position.LEFT -> anchorPoint[0] = anchorPoint[0] - spot.width.toInt()
-            Coachmark.Position.RIGHT -> anchorPoint[0] = anchorPoint[0] + spot.width.toInt()
-        }
-
-        if (item.deviations[0] != 0) {
-            anchorPoint[0] = anchorPoint[0] + item.deviations[0]
-        }
-        if (item.deviations[1] != 0) {
-            anchorPoint[1] = anchorPoint[1] + item.deviations[1]
-        }
-
-        return anchorPoint
     }
 
     private fun initSpotViewIfNecessary() {
@@ -255,6 +239,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         }
     }
 
+
     private fun initSequence(spot: Spot) {
         callListeners()
         spotView?.removeLastSpot()
@@ -279,8 +264,9 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     private fun drawRelatedView(
-        item: Coachmark<View>,
-        anchorPoint: IntArray,
+        item: Coachmark,
+        spot: Spot,
+        focusView: View,
         animate: Boolean = false
     ) {
         findViewById<ViewGroup>(currentContentLayoutId)?.let {
@@ -304,7 +290,6 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         relatedView.visibility = View.INVISIBLE
         assignViewRelatedId(relatedView)
-        val maxWidth = item.maxWidth.toPx
 
         contentLayout.addView(
             relatedView, ConstraintLayout.LayoutParams(
@@ -317,18 +302,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             relatedView.fadeIn()
         }
 
-        relatedView.viewTreeObserver?.addOnGlobalLayoutListener(object :
-            OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                if (maxWidth > 0 && relatedView.width > maxWidth) {
-                    requestLayout()
-                    relatedView.layoutParams.width = maxWidth
-                }
-
-                relatedView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                setConstraints(item, contentLayout, anchorPoint)
-            }
-        })
+        setRelatedViewConstraints(item, contentLayout, spot, focusView)
     }
 
     private fun assignViewRelatedId(relatedView: View) {
@@ -353,163 +327,141 @@ class CoachMarksFlow @JvmOverloads constructor(
         addView(imageView)
     }
 
-    private fun setConstraints(
-        item: Coachmark<View>,
+    private fun setRelatedViewConstraints(
+        item: Coachmark,
         contentLayout: ConstraintLayout,
-        anchorPoint: IntArray
+        spot: Spot,
+        focusView: View
     ) {
-        val verticalGuideId = R.id.vertical_guide
-        val horizontalGuideId = R.id.horizontal_guide
+        val coordinates = IntArray(2)
+        focusView.getLocationInWindow(coordinates)
 
-        val constraintSet = ConstraintSet()
-        constraintSet.clone(contentLayout)
-        constraintSet.create(horizontalGuideId, ConstraintSet.HORIZONTAL_GUIDELINE)
-        constraintSet.create(verticalGuideId, ConstraintSet.VERTICAL_GUIDELINE)
+        val wDifference = ((spot.width * 2) - focusView.width).toInt()
+        val hDifference = ((spot.height * 2) - focusView.height).toInt()
 
-        constraintSet.setGuidelineBegin(horizontalGuideId, anchorPoint[1])
-        constraintSet.setGuidelineBegin(verticalGuideId, anchorPoint[0])
-        constraintSet.applyTo(contentLayout)
-
-        when (item.position) {
-            Coachmark.Position.TOP -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
-                    ConstraintSet.TOP, 0
-                )
-                constraintSet.setVerticalBias(relatedViewId, 100f)
-            }
-            Coachmark.Position.BOTTOM -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                    ConstraintSet.BOTTOM
-                )
-                constraintSet.setVerticalBias(relatedViewId, 0f)
-            }
-            Coachmark.Position.LEFT -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                    ConstraintSet.LEFT
-                )
-                constraintSet.setHorizontalBias(relatedViewId, 100f)
-            }
-            Coachmark.Position.RIGHT -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                    ConstraintSet.RIGHT
-                )
-                constraintSet.setHorizontalBias(relatedViewId, 0f)
+        val view = View(context).apply {
+            id = View.generateViewId()
+            layoutParams = LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ).apply {
+                width = focusView.width + wDifference
+                height = focusView.height + hDifference
             }
         }
 
-        when (item.alignment) {
-            Coachmark.Alignment.CENTER ->
-                if (item.position == Coachmark.Position.TOP || item.position == Coachmark.Position.BOTTOM) {
-                    constraintSet.connect(
-                        relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                        ConstraintSet.LEFT
-                    )
-                    constraintSet.connect(
-                        relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                        ConstraintSet.RIGHT
-                    )
-                } else {
-                    constraintSet.connect(
-                        relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                        ConstraintSet.TOP
-                    )
-                    constraintSet.connect(
-                        relatedViewId, ConstraintSet.BOTTOM,
-                        horizontalGuideId, ConstraintSet.BOTTOM
-                    )
+        contentLayout.addView(view)
+
+        val constraintSet = ConstraintSet()
+        constraintSet.clone(contentLayout)
+
+        val xMargin = if (isRtl) {
+            (Resources.getSystem().displayMetrics.widthPixels - coordinates[0] - spot.width * 2).toInt() + (wDifference / 2)
+        } else {
+            coordinates[0] - (wDifference / 2)
+        }
+        constraintSet.connect(
+            view.id,
+            ConstraintSet.TOP,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.TOP,
+            coordinates[1] - (hDifference / 2)
+        )
+        constraintSet.connect(
+            view.id,
+            ConstraintSet.START,
+            ConstraintSet.PARENT_ID,
+            ConstraintSet.START,
+            xMargin
+        )
+
+        for (connection in item.connections) {
+            val startSide = when (connection.relatedViewConnection) {
+                Coachmark.ConnectionSide.TOP -> ConstraintSet.TOP
+                Coachmark.ConnectionSide.BOTTOM -> ConstraintSet.BOTTOM
+                Coachmark.ConnectionSide.START -> ConstraintSet.START
+                Coachmark.ConnectionSide.END -> ConstraintSet.END
+            }
+            val targetId = when (connection.anchorView) {
+                Coachmark.AnchorView.PARENT -> ConstraintSet.PARENT_ID
+                Coachmark.AnchorView.TARGET -> view.id
+            }
+            val endSide = when (connection.anchorViewConnection) {
+                Coachmark.ConnectionSide.TOP -> ConstraintSet.TOP
+                Coachmark.ConnectionSide.BOTTOM -> ConstraintSet.BOTTOM
+                Coachmark.ConnectionSide.START -> ConstraintSet.START
+                Coachmark.ConnectionSide.END -> ConstraintSet.END
+            }
+
+            if (connection.margin != 0 && targetId != ConstraintSet.PARENT_ID) {
+                val id = View.generateViewId()
+                val guideType = when (connection.anchorViewConnection) {
+                    Coachmark.ConnectionSide.TOP, Coachmark.ConnectionSide.BOTTOM -> {
+                        ConstraintSet.HORIZONTAL_GUIDELINE
+                    }
+                    else -> {
+                        ConstraintSet.VERTICAL_GUIDELINE
+                    }
                 }
-            Coachmark.Alignment.TOP -> {
+                constraintSet.create(id, guideType)
+                val thePoint = when (connection.anchorViewConnection) {
+                    Coachmark.ConnectionSide.TOP -> {
+                        coordinates[1] - (hDifference / 2) + connection.margin.toPx
+                    }
+                    Coachmark.ConnectionSide.BOTTOM -> {
+                        coordinates[1] - (hDifference / 2) + (spot.height.toInt() * 2) + connection.margin.toPx
+                    }
+                    Coachmark.ConnectionSide.START -> {
+                        if (isRtl.not()) {
+                            coordinates[0] - (wDifference / 2) + connection.margin.toPx
+                        } else {
+                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx + spot.width.toInt() * 2
+                        }
+                    }
+                    Coachmark.ConnectionSide.END -> {
+                        if (isRtl.not()) {
+                            coordinates[0] - (wDifference / 2) + (spot.width.toInt() * 2) + connection.margin.toPx
+                        } else {
+                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx
+                        }
+                    }
+                }
+
+                val finalPoint =
+                    if (isRtl.not() || connection.anchorViewConnection == Coachmark.ConnectionSide.TOP || connection.anchorViewConnection == Coachmark.ConnectionSide.BOTTOM) {
+                        thePoint
+                    } else {
+                        Resources.getSystem().displayMetrics.widthPixels - thePoint
+                    }
+                constraintSet.setGuidelineBegin(id, finalPoint)
+                constraintSet.applyTo(contentLayout)
+                constraintSet.connect(relatedViewId, startSide, id, endSide, 0)
+            } else {
                 constraintSet.connect(
-                    relatedViewId, ConstraintSet.BOTTOM, horizontalGuideId,
-                    ConstraintSet.TOP
+                    relatedViewId,
+                    startSide,
+                    view.id,
+                    endSide,
+                    0
                 )
-                constraintSet.setVerticalBias(relatedViewId, 100f)
             }
-            Coachmark.Alignment.BOTTOM -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.TOP, horizontalGuideId,
-                    ConstraintSet.BOTTOM
-                )
-                constraintSet.setVerticalBias(relatedViewId, 0f)
-            }
-            Coachmark.Alignment.LEFT -> {
-                constraintSet.connect(
-                    relatedViewId, ConstraintSet.RIGHT, verticalGuideId,
-                    ConstraintSet.LEFT
-                )
-                constraintSet.setVerticalBias(relatedViewId, 100f)
-            }
-            Coachmark.Alignment.RIGHT -> constraintSet.connect(
-                relatedViewId, ConstraintSet.LEFT, verticalGuideId,
-                ConstraintSet.RIGHT
-            )
         }
 
         constraintSet.applyTo(contentLayout)
         contentLayout.post { item.relatedSpotView?.visibility = View.VISIBLE }
     }
 
-    private fun calculateRelatedViewMaxWidth(
-        center: IntArray,
-        item: Coachmark<View>,
-        spotWidth: Int
-    ) {
-        val screenWidth = Resources.getSystem().displayMetrics.widthPixels
-        var width = screenWidth
-
-        when (item.position) {
-            Coachmark.Position.TOP, Coachmark.Position.BOTTOM -> if (item.alignment != Coachmark.Alignment.CENTER) {
-                width -= (spotWidth / 2).toPx
-
-                if (item.alignment == Coachmark.Alignment.LEFT) {
-                    if (item.deviations[0] > 0) {
-                        width -= item.deviations[0]
-                    }
-                    width -= (screenWidth - center[0])
-                } else if (item.alignment == Coachmark.Alignment.RIGHT) {
-                    if (item.deviations[0] < 0) {
-                        width -= item.deviations[0]
-                    }
-                    width -= center[0]
-                }
-            }
-            Coachmark.Position.LEFT, Coachmark.Position.RIGHT -> {
-                if (item.position == Coachmark.Position.LEFT) {
-                    if (item.deviations[0] > 0) {
-                        width -= item.deviations[0]
-                    }
-                    width -= screenWidth - (center[0] - (spotWidth / 2).toPx)
-                } else if (item.position == Coachmark.Position.RIGHT) {
-                    if (item.deviations[0] < 0) {
-                        width -= item.deviations[0]
-                    }
-                    width -= (spotWidth / 2).toPx
-                    width -= center[0]
-                }
-            }
-        }
-
-        item.maxWidth = width.toDp
-    }
-
     class Builder(private val context: Context) {
 
-        internal var steps = mutableListOf<Coachmark<View>>()
+        internal var steps = mutableListOf<Coachmark>()
         internal var initialDelay = 0L
         internal var animate = true
         internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
         internal var allowOverlaidInteractions = false
+        internal var forceRtl = false
 
-        fun <TYPE : View> steps(listSteps: List<Coachmark<TYPE>>) =
-            apply { steps.addAll(listSteps as List<Coachmark<View>>) }
-
-        fun <TYPE : View> nextStep(step: Coachmark<TYPE>) =
-            apply { steps.add(step as Coachmark<View>) }
-
+        fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
+        fun nextStep(step: Coachmark) = apply { steps.add(step) }
         fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
         fun withAnimation(animate: Boolean) = apply { this.animate = animate }
         fun animationVelocity(animationVelocity: AnimationVelocity) =
@@ -517,6 +469,8 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         fun allowOverlaidViewsInteractions(allow: Boolean) =
             apply { this.allowOverlaidInteractions = allow }
+
+        fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
 
         fun build() = CoachMarksFlow(context).initView(this)
     }

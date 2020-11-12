@@ -12,7 +12,7 @@ import com.aoliva.coachmarks.extensions.toPx
 internal object SpotGenerator {
 
     internal fun getSpot(
-        coachMark: Coachmark<View>,
+        coachMark: Coachmark,
         focusView: View,
         animate: Boolean,
         animationVelocity: CoachMarksFlow.AnimationVelocity
