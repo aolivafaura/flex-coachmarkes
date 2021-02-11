@@ -115,12 +115,16 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     private fun removeCoachMarkFlow(closeAction: CoachmarkCloseAction) {
+        if (parent == null) {
+            return
+        }
+
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
             ?.removeOnLayoutChangeListener(
                 currentLayoutChangeListener
             )
         fadeOut {
-            (parent as ViewGroup).removeView(this)
+            (parent as? ViewGroup)?.removeView(this)
             coachMarkListener?.onCoachmarkFlowClosed(closeAction)
         }
     }
@@ -153,6 +157,10 @@ class CoachMarksFlow @JvmOverloads constructor(
     // PRIVATE METHODS -----------------------------------------------------------------------------
 
     private fun drawStep(item: Coachmark) {
+        if (parent == null) {
+            return
+        }
+
         currentFocusView?.takeIf { currentLayoutChangeListener != null }
             ?.removeOnLayoutChangeListener(
                 currentLayoutChangeListener
@@ -163,7 +171,7 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         val focusView: View? =
             if (item.target != null) item.target
-            else (parent as ViewGroup).findViewById(item.targetId)
+            else (parent as? ViewGroup)?.findViewById(item.targetId)
 
         if (focusView == null) {
             Log.w(
@@ -269,8 +277,12 @@ class CoachMarksFlow @JvmOverloads constructor(
         focusView: View,
         animate: Boolean = false
     ) {
+        if (parent == null) {
+            return
+        }
+
         findViewById<ViewGroup>(currentContentLayoutId)?.let {
-            (it.parent as ViewGroup).removeView(it)
+            (it.parent as? ViewGroup)?.removeView(it)
             it.removeAllViews()
         }
 
