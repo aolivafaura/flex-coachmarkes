@@ -25,16 +25,14 @@ internal class SpotView : AppCompatImageView {
     private val paint = Paint(ANTI_ALIAS_FLAG)
     private val potterDuffClear = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
     private val potterDuffAdd = PorterDuffXfermode(PorterDuff.Mode.ADD)
-    private val backgroundColor = R.color.black_70
 
     private val spots: MutableList<Spot> = mutableListOf()
     private val spotsIndices: HashMap<Spot, Int> = hashMapOf()
 
     private var currentSpot: Spot? = null
-    private var stateListener: (Coachmark.CoachMarkState, Int) -> Unit =
-        { _, _ -> }
+    private var stateListener: (Coachmark.CoachMarkState, Int) -> Unit = { _, _ -> }
     private var targetViewClickListener: ((Int) -> Unit) = {}
-
+    
     internal var onOverlayInteracted: (() -> Unit)? = null
     internal var allowInteractions = false
 
@@ -97,7 +95,7 @@ internal class SpotView : AppCompatImageView {
         super.onDraw(canvas)
 
         paint.xfermode = potterDuffAdd
-        paint.color = ContextCompat.getColor(context, backgroundColor)
+        paint.color = ContextCompat.getColor(context, DEFAULT_BACKGROUND_COLOR)
         canvas.drawPaint(paint)
 
         paint.style = Paint.Style.FILL
@@ -165,5 +163,9 @@ internal class SpotView : AppCompatImageView {
 
     private fun isEventInsideSpot(event: MotionEvent): Boolean {
         return currentSpot?.targetViewRect?.contains(event.x, event.y) == true
+    }
+    
+    internal companion object {
+        internal val DEFAULT_BACKGROUND_COLOR = R.color.black_70
     }
 }

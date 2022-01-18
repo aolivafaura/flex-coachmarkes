@@ -13,7 +13,6 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import androidx.core.content.ContextCompat
 import androidx.core.text.TextUtilsCompat
 import androidx.core.view.ViewCompat
 import com.aoliva.coachmarks.extensions.*
@@ -49,6 +48,8 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     private var isRtl by Delegates.notNull<Boolean>()
 
+    private var closeView: View? = null
+
     /**
      * Notifies when coachmark view is dismissed
      */
@@ -69,7 +70,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             getActivity()?.window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
                 context.resources.configuration.locale
             ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
-
+        closeView = builder.closeView
         return this
     }
 
@@ -323,20 +324,26 @@ class CoachMarksFlow @JvmOverloads constructor(
     }
 
     private fun addCloseButton() {
-        val imageView = ImageView(context).apply {
-            id = View.generateViewId()
-            layoutParams = LayoutParams(
-                LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
-                marginEnd = MARGIN_CLOSE_BUTTON.toPx
-                addRule(ALIGN_PARENT_END)
+        val closeViewToUse = closeView?.let { closeView ->
+            closeView.id = View.generateViewId()
+            closeView
+        } ?: run {
+            ImageView(context).apply {
+                id = View.generateViewId()
+                setImageResource(R.drawable.ic_close_white)
             }
-            setImageResource(R.drawable.ic_close_white)
-            setOnClickListener { removeCoachMarkFlow(CoachmarkCloseAction.CLOSE_BUTTON) }
         }
-        addView(imageView)
+        closeViewToUse.setOnClickListener { removeCoachMarkFlow(CoachmarkCloseAction.CLOSE_BUTTON) }
+
+        val layoutParams = LayoutParams(
+            LayoutParams.WRAP_CONTENT,
+            LayoutParams.WRAP_CONTENT
+        ).apply {
+            topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
+            marginEnd = MARGIN_CLOSE_BUTTON.toPx
+            addRule(ALIGN_PARENT_END)
+        }
+        addView(closeViewToUse, layoutParams)
     }
 
     private fun setRelatedViewConstraints(
@@ -471,6 +478,8 @@ class CoachMarksFlow @JvmOverloads constructor(
         internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
         internal var allowOverlaidInteractions = false
         internal var forceRtl = false
+        internal var closeView: View? = null
+
 
         fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
         fun nextStep(step: Coachmark) = apply { steps.add(step) }
@@ -483,6 +492,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             apply { this.allowOverlaidInteractions = allow }
 
         fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
+        fun closeView(closeView: View) = apply { this.closeView = closeView }
 
         fun build() = CoachMarksFlow(context).initView(this)
     }

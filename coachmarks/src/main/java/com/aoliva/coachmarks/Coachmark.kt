@@ -141,6 +141,12 @@ class Coachmark {
 
     class RelatedViewOptions(vararg val connections: Connection)
 
+    /**
+     * @param relatedViewConnection Side of the related view to connect with given anchor view
+     * @param anchorView Make reference to the view that is acts as a reference for the related view connection
+     * @param anchorViewConnection Side where the anchor view is going to be connected with the related view
+     * @param margin Margin in DP
+     */
     data class Connection(
         val relatedViewConnection: ConnectionSide,
         val anchorView: AnchorView,
@@ -153,7 +159,15 @@ class Coachmark {
     }
 
     enum class AnchorView {
-        PARENT, TARGET
+        /**
+         * Parent of the view related view, generally the user screen
+         */
+        PARENT,
+
+        /**
+         * Spot target view
+         */
+        TARGET
     }
 
     enum class CoachMarkState {

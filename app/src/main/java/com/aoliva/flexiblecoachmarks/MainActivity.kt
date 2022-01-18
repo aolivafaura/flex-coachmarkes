@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun createFirstFlow() {
+        val closeView = layoutInflater.inflate(R.layout.close_view, null)
         findViewById<View>(R.id.button).setOnClickListener {
             val relatedButton = layoutInflater.inflate(R.layout.view_simple_layout, null)
             val relatedButtonReplace: View = Button(this).apply { text = "Replace me!" }
@@ -114,6 +115,7 @@ class MainActivity : AppCompatActivity() {
             val coachmarksFlow = CoachMarksFlow.with(this)
                 .steps(listOf(coachmark1, coachmark4))
                 .animationVelocity(CoachMarksFlow.AnimationVelocity.NORMAL)
+                .closeView(closeView)
 //                .initialDelay(1000)
                 .allowOverlaidViewsInteractions(false)
 //                .withAnimation(false)
