@@ -1,0 +1,3 @@
+install:
+  - ./gradlew :coachmarks:build :coachmarks:publishToMavenLocal
+  - find . -name "*.aar"
