@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.View
 import android.view.View.OnLayoutChangeListener
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -51,6 +52,7 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     private var closeView: View? = null
     private var closeViewPosition: CloseViewPosition = CloseViewPosition.TOP_END
+    private var window: Window? = null
 
     /**
      * Notifies when coachmark view is dismissed
@@ -68,8 +70,8 @@ class CoachMarksFlow @JvmOverloads constructor(
         animate = builder.animate
         animationVelocity = builder.animationVelocity
         allowOverlaidViewsInteractions = builder.allowOverlaidInteractions
-        isRtl =
-            getActivity()?.window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
+        window = builder.window ?: getActivity()?.window
+        isRtl = window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
                 context.resources.configuration.locale
             ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
         closeView = builder.closeView
@@ -145,7 +147,7 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     fun show() {
         Handler(Looper.getMainLooper()).postDelayed({
-            val vg = getActivity()?.window?.decorView?.rootView as ViewGroup
+            val vg = window?.decorView?.rootView as ViewGroup
             val params = LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
@@ -520,6 +522,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         internal var forceRtl = false
         internal var closeView: View? = null
         internal var closeViewPosition: CloseViewPosition? = null
+        internal var window: Window? = null
 
         fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
         fun nextStep(step: Coachmark) = apply { steps.add(step) }
@@ -539,6 +542,7 @@ class CoachMarksFlow @JvmOverloads constructor(
 
         fun closeViewPosition(position: CloseViewPosition = CloseViewPosition.TOP_END) =
             apply { this.closeViewPosition = position }
+        fun window(window: Window) = apply { this.window = window }
 
         fun build() = CoachMarksFlow(context).initView(this)
     }
