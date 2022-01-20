@@ -116,6 +116,7 @@ class MainActivity : AppCompatActivity() {
                 .steps(listOf(coachmark1, coachmark4))
                 .animationVelocity(CoachMarksFlow.AnimationVelocity.NORMAL)
                 .closeView(closeView)
+                .closeViewPosition(CoachMarksFlow.CloseViewPosition.BOTTOM_END)
 //                .initialDelay(1000)
                 .allowOverlaidViewsInteractions(false)
 //                .withAnimation(false)

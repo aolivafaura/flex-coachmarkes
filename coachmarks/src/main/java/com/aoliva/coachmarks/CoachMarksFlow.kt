@@ -1,6 +1,7 @@
 package com.aoliva.coachmarks
 
 import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
@@ -49,6 +50,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     private var isRtl by Delegates.notNull<Boolean>()
 
     private var closeView: View? = null
+    private var closeViewPosition: CloseViewPosition = CloseViewPosition.TOP_END
 
     /**
      * Notifies when coachmark view is dismissed
@@ -71,6 +73,8 @@ class CoachMarksFlow @JvmOverloads constructor(
                 context.resources.configuration.locale
             ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
         closeView = builder.closeView
+        builder.closeViewPosition?.let { position -> closeViewPosition = position }
+
         return this
     }
 
@@ -334,16 +338,52 @@ class CoachMarksFlow @JvmOverloads constructor(
             }
         }
         closeViewToUse.setOnClickListener { removeCoachMarkFlow(CoachmarkCloseAction.CLOSE_BUTTON) }
+        addView(closeViewToUse, getCloseViewLayoutParams())
+    }
 
+    private fun getCloseViewLayoutParams(): LayoutParams {
         val layoutParams = LayoutParams(
             LayoutParams.WRAP_CONTENT,
             LayoutParams.WRAP_CONTENT
-        ).apply {
-            topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
-            marginEnd = MARGIN_CLOSE_BUTTON.toPx
-            addRule(ALIGN_PARENT_END)
+        )
+        when (closeViewPosition) {
+            CloseViewPosition.TOP_END -> {
+                layoutParams.topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
+                layoutParams.marginEnd = MARGIN_CLOSE_BUTTON.toPx
+                layoutParams.addRule(ALIGN_PARENT_END)
+            }
+            CloseViewPosition.BOTTOM_END -> {
+                val navigationBarHeight = getNavigationBarHeight()
+                layoutParams.bottomMargin = MARGIN_CLOSE_BUTTON.toPx + navigationBarHeight
+                layoutParams.marginEnd = MARGIN_CLOSE_BUTTON.toPx
+                layoutParams.addRule(ALIGN_PARENT_END)
+                layoutParams.addRule(ALIGN_PARENT_BOTTOM)
+            }
+            CloseViewPosition.BOTTOM_START -> {
+                val navigationBarHeight = getNavigationBarHeight()
+                layoutParams.bottomMargin = MARGIN_CLOSE_BUTTON.toPx + navigationBarHeight
+                layoutParams.marginStart = MARGIN_CLOSE_BUTTON.toPx
+                layoutParams.addRule(ALIGN_PARENT_START)
+                layoutParams.addRule(ALIGN_PARENT_BOTTOM)
+            }
+            CloseViewPosition.TOP_START -> {
+                layoutParams.topMargin = MARGIN_CLOSE_BUTTON.toPx + resources.statusBarHeight
+                layoutParams.marginStart = MARGIN_CLOSE_BUTTON.toPx
+                layoutParams.addRule(ALIGN_PARENT_START)
+            }
         }
-        addView(closeViewToUse, layoutParams)
+        return layoutParams
+    }
+
+    private fun getNavigationBarHeight(): Int {
+        val orientation = context.resources.configuration.orientation
+        val id = resources.getIdentifier(
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) "navigation_bar_height" else "navigation_bar_height_landscape",
+            "dimen", "android"
+        )
+        return if (id > 0) {
+            resources.getDimensionPixelSize(id)
+        } else 0
     }
 
     private fun setRelatedViewConstraints(
@@ -479,7 +519,7 @@ class CoachMarksFlow @JvmOverloads constructor(
         internal var allowOverlaidInteractions = false
         internal var forceRtl = false
         internal var closeView: View? = null
-
+        internal var closeViewPosition: CloseViewPosition? = null
 
         fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
         fun nextStep(step: Coachmark) = apply { steps.add(step) }
@@ -492,9 +532,22 @@ class CoachMarksFlow @JvmOverloads constructor(
             apply { this.allowOverlaidInteractions = allow }
 
         fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
-        fun closeView(closeView: View) = apply { this.closeView = closeView }
+        fun closeView(closeView: View) =
+            apply {
+                this.closeView = closeView
+            }
+
+        fun closeViewPosition(position: CloseViewPosition = CloseViewPosition.TOP_END) =
+            apply { this.closeViewPosition = position }
 
         fun build() = CoachMarksFlow(context).initView(this)
+    }
+
+    enum class CloseViewPosition {
+        TOP_START,
+        TOP_END,
+        BOTTOM_START,
+        BOTTOM_END
     }
 
     enum class AnimationVelocity(val milliseconds: Long) {
