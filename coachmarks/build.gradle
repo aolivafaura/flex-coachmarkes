@@ -44,6 +44,9 @@ project.afterEvaluate {
         publications {
             release(MavenPublication) {
                 from components.release
+                groupId = "com.aolivafaura"
+                artifactId = "flex-coachmarks"
+                version = "1.0.18"
             }
         }
     }
