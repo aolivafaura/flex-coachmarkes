@@ -1,11 +1,9 @@
 package com.aoliva.coachmarks.spot
 
 import android.graphics.RectF
-import android.util.Log
 import android.view.View
 import com.aoliva.coachmarks.CoachMarksFlow
 import com.aoliva.coachmarks.Coachmark
-import com.aoliva.coachmarks.TAG
 import com.aoliva.coachmarks.extensions.percentage
 import com.aoliva.coachmarks.extensions.toPx
 
@@ -34,10 +32,6 @@ internal object SpotGenerator {
                     coachMark.sizePercentage > 0 -> focusView.height.percentage(coachMark.sizePercentage)
                     else -> focusView.height
                 }
-                Log.d(
-                    TAG,
-                    "original he ${focusView.height} calculated he $spotHeight originl wi ${focusView.width} calculated wi $spotWidth"
-                )
                 generateSpot(
                     centerCoordinates,
                     spotHeight / 2,
@@ -95,10 +89,8 @@ internal object SpotGenerator {
         val rect = getRect(centerCoordinates, radius, radius)
         val velocity = calculateVelocity(animationVelocity, radius * 2)
 
-        return CircleSpot(rect, radius.toFloat(), animate, velocity, centerCoordinates).apply {
-            direction =
-                Spot.EXPAND
-        }
+        return CircleSpot(rect, radius.toFloat(), animate, velocity, centerCoordinates)
+            .apply { direction = Spot.EXPAND }
     }
 
     private fun getRect(coordinates: IntArray, width: Int, height: Int): RectF {

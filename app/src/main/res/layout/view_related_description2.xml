@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
     android:background="@android:color/holo_green_dark"
-    android:alpha="0.5"
-    android:layout_height="wrap_content">
+    android:padding="12dp">
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:text="TextView"
+        android:layout_centerHorizontal="true"
+        android:text="Description2"
         android:textColor="#fff" />
 
     <Button
-        android:id="@+id/button9"
+        android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/textView"
-        android:text="Button" />
+        android:text="NEXT2" />
 </RelativeLayout>

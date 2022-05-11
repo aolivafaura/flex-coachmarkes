@@ -15,7 +15,6 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
-import androidx.core.text.TextUtilsCompat
 import androidx.core.view.ViewCompat
 import com.aoliva.coachmarks.extensions.*
 import com.aoliva.coachmarks.spot.Spot
@@ -32,14 +31,12 @@ class CoachMarksFlow @JvmOverloads constructor(
     // VARIABLES -----------------------------------------------------------------------------------
     private var spotView: SpotView? = null
 
-    var steps: List<Coachmark>? = null
-        private set
+    private var steps: List<Coachmark>? = null
     private var currentStep = 0
 
     private var relatedViewId: Int = 0
     private var currentContentLayoutId: Int = 0
 
-    var coachMarkListener: CoachMarkListener? = null
     private var initialDelay = 200L
     private var animate = true
     private var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
@@ -54,15 +51,7 @@ class CoachMarksFlow @JvmOverloads constructor(
     private var closeViewPosition: CloseViewPosition = CloseViewPosition.TOP_END
     private var window: Window? = null
 
-    /**
-     * Notifies when coachmark view is dismissed
-     */
-    interface CoachMarkListener {
-        fun onCoachmarkFlowClosed(closeAction: CoachmarkCloseAction)
-        fun onCoachmarkFlowShowed()
-        fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
-        fun onTargetViewClick(coachMarkIndex: Int)
-    }
+    var coachMarkListener: CoachMarkListener? = null
 
     private fun initView(builder: Builder): CoachMarksFlow {
         steps = builder.steps
@@ -71,15 +60,15 @@ class CoachMarksFlow @JvmOverloads constructor(
         animationVelocity = builder.animationVelocity
         allowOverlaidViewsInteractions = builder.allowOverlaidInteractions
         window = builder.window ?: getActivity()?.window
-        isRtl = window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL || TextUtilsCompat.getLayoutDirectionFromLocale(
-                context.resources.configuration.locale
-            ) == ViewCompat.LAYOUT_DIRECTION_RTL || builder.forceRtl
+        isRtl =
+            builder.forceRtl ||
+                    window?.decorView?.layoutDirection == View.LAYOUT_DIRECTION_RTL ||
+                    context.localeDirection() == ViewCompat.LAYOUT_DIRECTION_RTL
         closeView = builder.closeView
         builder.closeViewPosition?.let { position -> closeViewPosition = position }
 
         return this
     }
-
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -96,7 +85,6 @@ class CoachMarksFlow @JvmOverloads constructor(
 
     }
 
-    // PUBLIC METHODS ------------------------------------------------------------------------------
     /**
      * @return `true` whether there is another step left, `false` if isn't
      */
@@ -118,6 +106,7 @@ class CoachMarksFlow @JvmOverloads constructor(
      * Close view
      */
     fun close() {
+        currentStep++
         removeCoachMarkFlow(CoachmarkCloseAction.DISMISSED)
     }
 
@@ -136,15 +125,19 @@ class CoachMarksFlow @JvmOverloads constructor(
         }
     }
 
+    /**
+     * @return current coachmark or `null` if there is no more coachmarks to show
+     */
     fun getCurrentStepView(): Coachmark? {
-        return steps?.let {
-            it[currentStep]
-        } ?: run {
+        return steps?.getOrNull(currentStep) ?: run {
             Log.v(TAG, "There is no steps defined")
             null
         }
     }
 
+    /**
+     * Shows the coachmark flow
+     */
     fun show() {
         Handler(Looper.getMainLooper()).postDelayed({
             val vg = window?.decorView?.rootView as ViewGroup
@@ -160,8 +153,6 @@ class CoachMarksFlow @JvmOverloads constructor(
             fadeIn(1)
         }, initialDelay)
     }
-
-    // PRIVATE METHODS -----------------------------------------------------------------------------
 
     private fun drawStep(item: Coachmark) {
         if (parent == null) {
@@ -181,10 +172,7 @@ class CoachMarksFlow @JvmOverloads constructor(
             else (parent as? ViewGroup)?.findViewById(item.targetId)
 
         if (focusView == null) {
-            Log.w(
-                "CUSTOM COACH MARK",
-                "There is no view detected with given Id: " + item.targetId
-            )
+            Log.w(TAG, "There is no view detected with given Id: " + item.targetId)
             removeCoachMarkFlow(CoachmarkCloseAction.DISMISSED)
             return
         }
@@ -416,8 +404,9 @@ class CoachMarksFlow @JvmOverloads constructor(
         val constraintSet = ConstraintSet()
         constraintSet.clone(contentLayout)
 
+        val screenWidthPixels = Resources.getSystem().displayMetrics.widthPixels
         val xMargin = if (isRtl) {
-            (Resources.getSystem().displayMetrics.widthPixels - coordinates[0] - spot.width * 2).toInt() + (wDifference / 2)
+            (screenWidthPixels - coordinates[0] - spot.width * 2).toInt() + (wDifference / 2)
         } else {
             coordinates[0] - (wDifference / 2)
         }
@@ -476,23 +465,26 @@ class CoachMarksFlow @JvmOverloads constructor(
                         if (isRtl.not()) {
                             coordinates[0] - (wDifference / 2) + connection.margin.toPx
                         } else {
-                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx + spot.width.toInt() * 2
+                            screenWidthPixels - (screenWidthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx + spot.width.toInt() * 2
                         }
                     }
                     Coachmark.ConnectionSide.END -> {
                         if (isRtl.not()) {
                             coordinates[0] - (wDifference / 2) + (spot.width.toInt() * 2) + connection.margin.toPx
                         } else {
-                            Resources.getSystem().displayMetrics.widthPixels - (Resources.getSystem().displayMetrics.widthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx
+                            screenWidthPixels - (screenWidthPixels - coordinates[0]) - (wDifference / 2) - connection.margin.toPx
                         }
                     }
                 }
 
                 val finalPoint =
-                    if (isRtl.not() || connection.anchorViewConnection == Coachmark.ConnectionSide.TOP || connection.anchorViewConnection == Coachmark.ConnectionSide.BOTTOM) {
+                    if (isRtl.not() ||
+                        connection.anchorViewConnection == Coachmark.ConnectionSide.TOP ||
+                        connection.anchorViewConnection == Coachmark.ConnectionSide.BOTTOM
+                    ) {
                         thePoint
                     } else {
-                        Resources.getSystem().displayMetrics.widthPixels - thePoint
+                        screenWidthPixels - thePoint
                     }
                 constraintSet.setGuidelineBegin(id, finalPoint)
                 constraintSet.applyTo(contentLayout)
@@ -512,39 +504,29 @@ class CoachMarksFlow @JvmOverloads constructor(
         contentLayout.post { item.relatedSpotView?.visibility = View.VISIBLE }
     }
 
-    class Builder(private val context: Context) {
+    /**
+     * Notifies coachmark flow events
+     */
+    interface CoachMarkListener {
+        /**
+         * Called when the flow is closed
+         */
+        fun onCoachmarkFlowClosed(closeAction: CoachmarkCloseAction)
 
-        internal var steps = mutableListOf<Coachmark>()
-        internal var initialDelay = 0L
-        internal var animate = true
-        internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
-        internal var allowOverlaidInteractions = false
-        internal var forceRtl = false
-        internal var closeView: View? = null
-        internal var closeViewPosition: CloseViewPosition? = null
-        internal var window: Window? = null
+        /**
+         * Called when the flow starts
+         */
+        fun onCoachmarkFlowShowed()
 
-        fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
-        fun nextStep(step: Coachmark) = apply { steps.add(step) }
-        fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
-        fun withAnimation(animate: Boolean) = apply { this.animate = animate }
-        fun animationVelocity(animationVelocity: AnimationVelocity) =
-            apply { this.animationVelocity = animationVelocity }
+        /**
+         * Called when the state of the flow changes
+         */
+        fun onChangedCoachMarkState(state: Coachmark.CoachMarkState, coachMarkIndex: Int)
 
-        fun allowOverlaidViewsInteractions(allow: Boolean) =
-            apply { this.allowOverlaidInteractions = allow }
-
-        fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
-        fun closeView(closeView: View) =
-            apply {
-                this.closeView = closeView
-            }
-
-        fun closeViewPosition(position: CloseViewPosition = CloseViewPosition.TOP_END) =
-            apply { this.closeViewPosition = position }
-        fun window(window: Window) = apply { this.window = window }
-
-        fun build() = CoachMarksFlow(context).initView(this)
+        /**
+         * Called when the highlighted view is clicked by the user
+         */
+        fun onTargetViewClick(coachMarkIndex: Int)
     }
 
     enum class CloseViewPosition {
@@ -569,6 +551,77 @@ class CoachMarksFlow @JvmOverloads constructor(
         OVERLAY,
         FLOW_ENDED,
         DISMISSED
+    }
+
+    class Builder(private val context: Context) {
+
+        internal var steps = mutableListOf<Coachmark>()
+        internal var initialDelay = 0L
+        internal var animate = true
+        internal var animationVelocity: AnimationVelocity = AnimationVelocity.NORMAL
+        internal var allowOverlaidInteractions = false
+        internal var forceRtl = false
+        internal var closeView: View? = null
+        internal var closeViewPosition: CloseViewPosition? = null
+        internal var window: Window? = null
+
+        /**
+         * List of coachmarks to show. They will be shown following the list order
+         */
+        fun steps(listSteps: List<Coachmark>) = apply { steps.addAll(listSteps) }
+
+        /**
+         * Delay to show start the flow in milliseconds
+         */
+        fun initialDelay(delay: Long) = apply { this.initialDelay = delay }
+
+        /**
+         * Whether the view highlight is animated or not. Set to `true` by default
+         */
+        fun withAnimation(animate: Boolean) = apply { this.animate = animate }
+
+        /**
+         * Velocity of the animation.
+         */
+        fun animationVelocity(animationVelocity: AnimationVelocity) =
+            apply { this.animationVelocity = animationVelocity }
+
+        /**
+         * Set to `true` to allow the interaction with the overlaid views
+         */
+        fun allowOverlaidViewsInteractions(allow: Boolean) =
+            apply { this.allowOverlaidInteractions = allow }
+
+        /**
+         * The library supports natively RTL. In case you're forcing your layouts to RTL
+         * programatically, set this flag to `true`. The default value is `false`
+         */
+        fun forceRTL(force: Boolean) = apply { this.forceRtl = force }
+
+        /**
+         * Custom close view. If not passed, an X will be shown.
+         */
+        fun closeView(closeView: View) =
+            apply {
+                this.closeView = closeView
+            }
+
+        /**
+         * Positioning of the close view in the screen
+         */
+        fun closeViewPosition(position: CloseViewPosition = CloseViewPosition.TOP_END) =
+            apply { this.closeViewPosition = position }
+
+        /**
+         * Pass your target window in case you are targeting a view inside a modal dialog.
+         * By default, the root view window is used.
+         */
+        fun window(window: Window) = apply { this.window = window }
+
+        /**
+         * Builds the flow
+         */
+        fun build() = CoachMarksFlow(context).initView(this)
     }
 
     companion object {
